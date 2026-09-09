@@ -1447,7 +1447,12 @@ struct DomCtx {
 // one column region: form reflector j from the published (σ, α = prow[jj], dots), apply
 // it to the rest of the minipanel in smem, publish next column's (dots, σ, prow incl. α).
 template<typename Real, int NB, int PW>
-__device__ __noinline__ void d_dom_region(DomCtx<Real, NB, PW>& c, int p, int jj) {
+#if defined(TQR_DOM_REGION_INLINE) && TQR_DOM_REGION_INLINE
+__device__ __forceinline__
+#else
+__device__ __noinline__
+#endif
+void d_dom_region(DomCtx<Real, NB, PW>& c, int p, int jj) {
     const int j = p + jj, rpb = c.a.rpb, r0 = c.r0, r1 = c.r1;
     const int r1all = c.r1all;
     const int tid = c.tid, nth = c.nth, lane = c.lane, warp = c.warp, NW = c.NW;
@@ -1482,7 +1487,15 @@ __device__ __noinline__ void d_dom_region(DomCtx<Real, NB, PW>& c, int p, int jj
     {
         const double* Pc = c.a.dcolP
                          + (size_t)(jj & 1) * (PW + 1) * c.a.dcolStride;
-        for (int e = warp; e < PW + 1; e += NW) {
+        // Only sigma (PW) and dots of columns jj+1..PW-1 are consumed below.
+        // With PW=NW=16, reducing the dead slot zero first made warp zero
+        // perform two serialized reductions while every other warp waited.
+#if defined(TQR_DOM_LIVE_REDUCE) && TQR_DOM_LIVE_REDUCE
+        const int firstSlot = jj + 1;
+#else
+        const int firstSlot = 0;
+#endif
+        for (int e = firstSlot + warp; e < PW + 1; e += NW) {
             double acc = 0.0;
             for (int b = lane; b < c.nbl; b += 32)
                 acc += Pc[(size_t)e * c.a.dcolStride + b];

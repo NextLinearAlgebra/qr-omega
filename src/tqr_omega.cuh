@@ -1794,7 +1794,9 @@ struct Omega {
         // bare "invalid argument". clRpbMax is defined so domSmem(clRpbMax) fits
         // SMEM_CAP by construction, so this is the tight legal bound, not a guess.
         for (const void* fp : {(const void*)k_panel_domino<Real, NB, 16, false, true>,
-                               (const void*)k_panel_domino<Real, NB, 16, false, true, true>})
+                               (const void*)k_panel_domino<Real, NB, 16, false, true, true>,
+                               (const void*)k_panel_domino<Real, NB, 16, false, false>,
+                               (const void*)k_panel_domino<Real, NB, 16, false, false, true>})
             CUDA_CHECK(cudaFuncSetAttribute(fp, cudaFuncAttributeMaxDynamicSharedMemorySize,
                                             domSmem((int)clRpbMax)));
         // The cluster variant, sized for the widest slab a legal cluster can hold,
@@ -2194,6 +2196,28 @@ struct Omega {
                 if (err == cudaSuccess) { launched = true; nbl = cnbl; rpb = crpb; }
                 else (void)cudaGetLastError();   // cluster did not fit -> fall through
             }
+        }
+        static const bool cooperativeSync = [] {
+            const char* mode = getenv("TQR_PANEL_SYNC");
+            if (mode && std::strcmp(mode, "cooperative") && std::strcmp(mode, "legacy")) {
+                std::fprintf(stderr, "TQR_PANEL_SYNC expects legacy|cooperative\n"); std::abort();
+            }
+            return mode && !std::strcmp(mode, "cooperative");
+        }();
+        if (!launched && cooperativeSync) {
+            const void* fn = overflow
+                ? (const void*)k_panel_domino<Real, NB, 16, false, false, true>
+                : (const void*)k_panel_domino<Real, NB, 16, false, false>;
+            int blocksPerSm = 0;
+            CUDA_CHECK(cudaOccupancyMaxActiveBlocksPerMultiprocessor(
+                &blocksPerSm, fn, 512, domSmem(rpb)));
+            if (nbl > blocksPerSm * smCount) {
+                std::fprintf(stderr, "cooperative panel does not fit resident grid\n"); std::abort();
+            }
+            unsigned* unused = nullptr;
+            void* args[] = {&da, &unused};
+            CUDA_CHECK(cudaLaunchCooperativeKernel(fn, dim3(nbl), dim3(512), args, domSmem(rpb), st));
+            launched = true;
         }
         if (!launched) {
             if (overflow)

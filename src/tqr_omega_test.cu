@@ -11,6 +11,28 @@
 #include <vector>
 #include <string>
 #include <cstring>
+#include <chrono>
+
+// Opt-in performance protocol; the original correctness CLI keeps its timing.
+static bool performance_mode = false;
+static double perf_timing(const char* tag, const std::vector<double>& samples,
+                          const std::vector<double>& wall) {
+    auto sorted = samples;
+    std::sort(sorted.begin(), sorted.end());
+    const size_t mid = sorted.size() / 2;
+    const double median = sorted.size() % 2 ? sorted[mid]
+                                           : (sorted[mid - 1] + sorted[mid]) / 2;
+    std::printf("PERF_TIMING %s warmup=2 reps=%zu median_ms=%.6f min_ms=%.6f max_ms=%.6f samples_ms=",
+                tag, samples.size(), median, sorted.front(), sorted.back());
+    for (size_t i = 0; i < samples.size(); ++i)
+        std::printf("%s%.6f", i ? "," : "", samples[i]);
+    std::printf(" wall_ms=");
+    for (size_t i = 0; i < wall.size(); ++i)
+        std::printf("%s%.6f", i ? "," : "", wall[i]);
+    std::printf("\n");
+    std::fflush(stdout);
+    return median;
+}
 
 // --probe measures global and cluster barrier latency by participant count.
 __global__ __launch_bounds__(512) void k_bar_gmem(unsigned* bar, int nbl, int iters) {
@@ -129,19 +151,35 @@ static double cusolver_ms(int m, int n, size_t lda, const Real* A0, Real* A, int
     CUDA_CHECK(cudaMalloc(&work, (size_t)std::max(1, lwork) * sizeof(Real)));
     cudaEvent_t e0, e1; CUDA_CHECK(cudaEventCreate(&e0)); CUDA_CHECK(cudaEventCreate(&e1));
     double best = 1e30;
-    for (int r = 0; r < reps; ++r) {
+    std::vector<double> samples, wall;
+    for (int r = performance_mode ? -2 : 0; r < reps; ++r) {
         CUDA_CHECK(cudaMemcpy(A, A0, lda * n * sizeof(Real), cudaMemcpyDeviceToDevice));
         CUDA_CHECK(cudaDeviceSynchronize());
+        const auto wall0 = std::chrono::steady_clock::now();
         CUDA_CHECK(cudaEventRecord(e0));
+        cusolverStatus_t status;
         if constexpr (std::is_same<Real, double>::value)
-            cusolverDnDgeqrf(h, m, n, A, (int)lda, tau, work, lwork, info);
+            status = cusolverDnDgeqrf(h, m, n, A, (int)lda, tau, work, lwork, info);
         else
-            cusolverDnSgeqrf(h, m, n, A, (int)lda, tau, work, lwork, info);
+            status = cusolverDnSgeqrf(h, m, n, A, (int)lda, tau, work, lwork, info);
+        if (status != CUSOLVER_STATUS_SUCCESS) {
+            std::fprintf(stderr, "cuSOLVER geqrf failed: %d\n", (int)status);
+            std::exit(1);
+        }
         CUDA_CHECK(cudaEventRecord(e1));
         CUDA_CHECK(cudaEventSynchronize(e1));
+        const auto wall1 = std::chrono::steady_clock::now();
         float ms; CUDA_CHECK(cudaEventElapsedTime(&ms, e0, e1));
-        best = std::min(best, (double)ms);
+        int infoHost = 0;
+        CUDA_CHECK(cudaMemcpy(&infoHost, info, sizeof(int), cudaMemcpyDeviceToHost));
+        if (infoHost != 0) { std::fprintf(stderr, "cuSOLVER info=%d\n", infoHost); std::exit(1); }
+        if (r >= 0) {
+            best = std::min(best, (double)ms);
+            samples.push_back(ms);
+            wall.push_back(std::chrono::duration<double, std::milli>(wall1 - wall0).count());
+        }
     }
+    if (performance_mode) best = perf_timing("cusolver", samples, wall);
     cudaEventDestroy(e0); cudaEventDestroy(e1);
     cudaFree(tau); cudaFree(work); cudaFree(info); cusolverDnDestroy(h);
     return best;
@@ -154,7 +192,8 @@ static int sampled_residual(tqr::Omega<Real, NB>& om, cublasHandle_t hb, cudaStr
                             const Real* A, const Real* A0, size_t lda, int m, int n,
                             int nvec, double& out_r1, double& out_r2) {
     const int k = std::min(m, n);
-    const double eps = std::is_same<Real, double>::value ? 1.11e-16 : 5.96e-8;
+    const double eps = std::is_same<Real, double>::value ? 1.11e-16
+                     : (om.tier == tqr::Tier::TF32 ? 4.88e-4 : 5.96e-8);
     Real *x = nullptr, *y = nullptr, *z = nullptr, *u = nullptr;
     CUDA_CHECK(cudaMalloc(&x, (size_t)std::max(m, n) * sizeof(Real)));
     CUDA_CHECK(cudaMalloc(&y, (size_t)m * sizeof(Real)));
@@ -330,8 +369,30 @@ static int run_cell(int m, int n, int reps, bool verbose, bool check = true) {
     const int  prCand[6] = {smc, smc / 2, smc / 4, smc / 8, 16, 8};
     const bool clCand[6] = {false, false, false, false, true, true};
     double tprTab[6];
-    for (int i = 0; i < 6; ++i)
-        tprTab[i] = tqr::probe_panel_s<Real, NB>(m, 3, std::max(1, prCand[i]), clCand[i]);
+    // Test-only fixture: reuse one measured table across A/B processes so probe
+    // noise cannot change the plan and masquerade as a kernel improvement.
+    // Positive infinity is allowed for an unavailable cluster candidate.
+    const char* fixedProbes = getenv("TQR_TEST_PANEL_PROBES");
+    if (fixedProbes) {
+        const char* p = fixedProbes;
+        for (int i = 0; i < 6; ++i) {
+            char* end = nullptr;
+            tprTab[i] = std::strtod(p, &end);
+            if (end == p || !(tprTab[i] > 0) ||
+                (i < 5 ? *end != ',' : *end != '\0') ||
+                (i < 4 && !std::isfinite(tprTab[i]))) {
+                std::fprintf(stderr, "TQR_TEST_PANEL_PROBES needs six positive comma-separated rates\n");
+                std::exit(2);
+            }
+            p = end + (i < 5 ? 1 : 0);
+        }
+    } else {
+        for (int i = 0; i < 6; ++i)
+            tprTab[i] = tqr::probe_panel_s<Real, NB>(m, 3, std::max(1, prCand[i]), clCand[i]);
+    }
+    if (performance_mode)
+        std::printf("PERF_PANEL_PROBES values=%.17g,%.17g,%.17g,%.17g,%.17g,%.17g\n",
+                    tprTab[0], tprTab[1], tprTab[2], tprTab[3], tprTab[4], tprTab[5]);
     tqr::Omega<Real, NB> om;
     om.tpanelPrTab = tprTab;
     om.tpanelSec = tprTab[0];
@@ -343,16 +404,24 @@ static int run_cell(int m, int n, int reps, bool verbose, bool check = true) {
     CUDA_CHECK(cudaStreamSynchronize(st));
     cudaEvent_t e0, e1; CUDA_CHECK(cudaEventCreate(&e0)); CUDA_CHECK(cudaEventCreate(&e1));
     float best = 1e30f;
-    for (int r = 0; r < reps; ++r) {
+    std::vector<double> samples, wall;
+    for (int r = performance_mode ? -2 : 0; r < reps; ++r) {
         CUDA_CHECK(cudaMemcpyAsync(A, A0, lda * n * sizeof(Real), cudaMemcpyDeviceToDevice, st));
         CUDA_CHECK(cudaStreamSynchronize(st));
+        const auto wall0 = std::chrono::steady_clock::now();
         CUDA_CHECK(cudaEventRecord(e0, st));
         om.geqrf(A);
         CUDA_CHECK(cudaEventRecord(e1, st));
         CUDA_CHECK(cudaEventSynchronize(e1));
+        const auto wall1 = std::chrono::steady_clock::now();
         float ms; CUDA_CHECK(cudaEventElapsedTime(&ms, e0, e1));
-        best = std::min(best, ms);
+        if (r >= 0) {
+            best = std::min(best, ms);
+            samples.push_back(ms);
+            wall.push_back(std::chrono::duration<double, std::milli>(wall1 - wall0).count());
+        }
     }
+    if (performance_mode) best = (float)perf_timing("omega", samples, wall);
 
     const double cus = cusolver_ms<Real>(m, n, lda, A0, A, reps);
     if (!check) {
@@ -509,6 +578,7 @@ static int run_cell(int m, int n, int reps, bool verbose, bool check = true) {
 int main(int argc, char** argv) {
     int only_m = 0, only_n = 0, reps = 1, bisect = 0, bsel = 64;
     bool verbose = false, speed = false, probe = false;
+    std::string perfTier;
     for (int i = 1; i < argc; ++i) {
         std::string a = argv[i];
         if (a == "--m" && i + 1 < argc) only_m = atoi(argv[++i]);
@@ -520,6 +590,7 @@ int main(int argc, char** argv) {
         // goes wrong, which a pass/fail on one size cannot.
         else if (a == "--bisect" && i + 1 < argc) bisect = atoi(argv[++i]);
         else if (a == "--speed") speed = true;
+        else if (a == "--perf-tier" && i + 1 < argc) perfTier = argv[++i];
         // 10:S6.2: b comes from the KERNEL's admissible register/shared set, so the
         // family is whatever widths the panel kernel is instantiated at. Sweeping it
         // is the only way the enumeration over b stops being degenerate -- and b is
@@ -538,6 +609,25 @@ int main(int argc, char** argv) {
         else if (a == "--probe") probe = true;
     }
     int bad = 0;
+    if (!perfTier.empty()) {
+        if (only_m <= 0 || only_n <= 0 || reps < 3 ||
+            (perfTier != "fp64" && perfTier != "fp32" && perfTier != "tf32" && perfTier != "3xtf32") ||
+            (bsel != 64 && bsel != 128) || (perfTier != "fp64" && bsel != 128) ||
+            only_m % bsel || only_n % bsel) {
+            std::fprintf(stderr, "--perf-tier requires a known tier, positive aligned --m/--n, --reps >= 3, "
+                                 "and --b 64|128 (float tiers require 128).\n");
+            return 2;
+        }
+        performance_mode = true;
+        setenv("TQR_TIER", perfTier.c_str(), 1);
+        std::printf("PERF_CONFIG tier=%s m=%d n=%d b=%d warmup=2 reps=%d statistic=median\n",
+                    perfTier.c_str(), only_m, only_n, bsel, reps);
+        if (perfTier == "fp64") {
+            if (bsel == 128) return run_cell<double,128>(only_m, only_n, reps, true, false);
+            return run_cell<double,64>(only_m, only_n, reps, true, false);
+        }
+        return run_cell<float,128>(only_m, only_n, reps, true, false);
+    }
     if (probe) {
         // The chain is K0*t_panel = (n/b)*t_panel(b). Measured t_panel ~ C*b^1.22, so
         // the CHAIN scales as b^0.22 -- it grows with b, and the same exponent says
