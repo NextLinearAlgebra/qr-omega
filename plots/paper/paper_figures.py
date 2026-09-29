@@ -103,8 +103,7 @@ def bars(r, ax, p, mode):
         if not x:
             ax.text(i, peak * .03, "n/a", ha="center", va="bottom", fontsize=FS - 2, color="#64727B")
             continue
-        ax.bar(i, y, width=.68, color=r.colors[lib], edgecolor="white", lw=.5, zorder=3,
-               hatch="////" if x["validation"] == "timing_only" else None)
+        ax.bar(i, y, width=.68, color=r.colors[lib], edgecolor="white", lw=.5, zorder=3)
         label = f"{y:.1f}" if y < 100 else f"{y:.0f}"
         if i < 3 and own:
             label += f"\n{x['time_s'] / own['time_s']:.2f}×"

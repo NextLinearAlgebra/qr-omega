@@ -29,8 +29,7 @@ the node. The published numbers were measured on NVIDIA DGX H200 nodes (driver 5
 * **Orthogonality.** `‖Q(QᵀX) − X‖_F / ‖X‖_F` for 16 deterministic random vectors `X`, applying Q from the retained
   factors. `--smoke` also forms Q explicitly and checks `‖QᵀQ − I‖_F / √m`.
 * The time and the checks of a data point come from the same configuration. TF32 and 3xTF32 are compared with the
-  references' FP32. On one GPU every library is checked; on several GPUs the paper reports the checks of QR-Ω and
-  the times of the references.
+  references' FP32.
 
 ## Reference libraries
 
