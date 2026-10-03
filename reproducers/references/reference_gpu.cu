@@ -2,9 +2,62 @@
 #include "kernels.cuh"
 #include "reference_gpu.hpp"
 using namespace tqr;
-template<class T> __global__ void cyclic_generate(T*a,int nr,int nc,int ld,int m,int nb,int pr,int pc,int rr,int rc,int first){for(size_t i=blockIdx.x*blockDim.x+threadIdx.x;i<size_t(nr)*nc;i+=size_t(blockDim.x)*gridDim.x){int lr=i%nr,lc=i/nr,r=lr/nb*pr*nb+rr*nb+lr%nb,c=first+lc/nb*pc*nb+rc*nb+lc%nb;a[lr+size_t(lc)*ld]=T(int(mix64(uint64_t(r)+uint64_t(c)*std::max(m,1)+73)%2001)-1000)/T(1000);}}
-template<class T> __global__ void cyclic_r(const T*a,int lda,T*x,int ldx,int nr,int nc,int nb,int pr,int pc,int rr,int rc,int first){for(size_t i=blockIdx.x*blockDim.x+threadIdx.x;i<size_t(nr)*nc;i+=size_t(blockDim.x)*gridDim.x){int lr=i%nr,lc=i/nr,r=lr/nb*pr*nb+rr*nb+lr%nb,c=first+lc/nb*pc*nb+rc*nb+lc%nb;int source_col=first/pc+lc;x[lr+size_t(lc)*ldx]=r<=c?a[lr+size_t(source_col)*lda]:T(0);}}
-extern "C" void reference_generate(void*a,int nr,int nc,int ld,int m,int nb,int pr,int pc,int rr,int rc,int first,int word){if(nr&&nc){if(word==4)cyclic_generate<<<256,128>>>((float*)a,nr,nc,ld,m,nb,pr,pc,rr,rc,first);else cyclic_generate<<<256,128>>>((double*)a,nr,nc,ld,m,nb,pr,pc,rr,rc,first);}CU(cudaDeviceSynchronize());}
-extern "C" void reference_r(const void*a,int lda,void*x,int ldx,int nr,int nc,int nb,int pr,int pc,int rr,int rc,int first,int word){if(nr&&nc){if(word==4)cyclic_r<<<256,128>>>((const float*)a,lda,(float*)x,ldx,nr,nc,nb,pr,pc,rr,rc,first);else cyclic_r<<<256,128>>>((const double*)a,lda,(double*)x,ldx,nr,nc,nb,pr,pc,rr,rc,first);}CU(cudaDeviceSynchronize());}
-template<class T> double relative_impl(const void*a,const void*b,int nr,int nc,int lda,int ldb){if(!nr||!nc)return 0;Buffer<T>out(3);relative_error<<<1,256>>>((const T*)a,(const T*)b,nr,nc,lda,ldb,out.p);CU(cudaDeviceSynchronize());auto v=out.download();return v[1]?double(v[0])/v[1]:double(v[0])*v[2];}
-extern "C" double reference_relative(const void*a,const void*b,int nr,int nc,int lda,int ldb,int word){return word==4?relative_impl<float>(a,b,nr,nc,lda,ldb):relative_impl<double>(a,b,nr,nc,lda,ldb);}
+template <class T>
+__global__ void cyclic_generate(T *a, int nr, int nc, int ld, int m, int nb, int pr, int pc, int rr,
+                                int rc, int first) {
+    for (size_t i = blockIdx.x * blockDim.x + threadIdx.x; i < size_t(nr) * nc;
+         i += size_t(blockDim.x) * gridDim.x) {
+        int lr = i % nr, lc = i / nr, r = lr / nb * pr * nb + rr * nb + lr % nb,
+            c = first + lc / nb * pc * nb + rc * nb + lc % nb;
+        a[lr + size_t(lc) * ld] =
+            T(int(mix64(uint64_t(r) + uint64_t(c) * std::max(m, 1) + 73) % 2001) - 1000) / T(1000);
+    }
+}
+template <class T>
+__global__ void cyclic_r(const T *a, int lda, T *x, int ldx, int nr, int nc, int nb, int pr, int pc,
+                         int rr, int rc, int first) {
+    for (size_t i = blockIdx.x * blockDim.x + threadIdx.x; i < size_t(nr) * nc;
+         i += size_t(blockDim.x) * gridDim.x) {
+        int lr = i % nr, lc = i / nr, r = lr / nb * pr * nb + rr * nb + lr % nb,
+            c = first + lc / nb * pc * nb + rc * nb + lc % nb;
+        int source_col = first / pc + lc;
+        x[lr + size_t(lc) * ldx] = r <= c ? a[lr + size_t(source_col) * lda] : T(0);
+    }
+}
+extern "C" void reference_generate(void *a, int nr, int nc, int ld, int m, int nb, int pr, int pc,
+                                   int rr, int rc, int first, int word) {
+    if (nr && nc) {
+        if (word == 4)
+            cyclic_generate<<<256, 128>>>((float *)a, nr, nc, ld, m, nb, pr, pc, rr, rc, first);
+        else
+            cyclic_generate<<<256, 128>>>((double *)a, nr, nc, ld, m, nb, pr, pc, rr, rc, first);
+    }
+    CU(cudaDeviceSynchronize());
+}
+extern "C" void reference_r(const void *a, int lda, void *x, int ldx, int nr, int nc, int nb,
+                            int pr, int pc, int rr, int rc, int first, int word) {
+    if (nr && nc) {
+        if (word == 4)
+            cyclic_r<<<256, 128>>>((const float *)a, lda, (float *)x, ldx, nr, nc, nb, pr, pc, rr,
+                                   rc, first);
+        else
+            cyclic_r<<<256, 128>>>((const double *)a, lda, (double *)x, ldx, nr, nc, nb, pr, pc, rr,
+                                   rc, first);
+    }
+    CU(cudaDeviceSynchronize());
+}
+template <class T>
+double relative_impl(const void *a, const void *b, int nr, int nc, int lda, int ldb) {
+    if (!nr || !nc)
+        return 0;
+    Buffer<T> out(3);
+    relative_error<<<1, 256>>>((const T *)a, (const T *)b, nr, nc, lda, ldb, out.p);
+    CU(cudaDeviceSynchronize());
+    auto v = out.download();
+    return v[1] ? double(v[0]) / v[1] : double(v[0]) * v[2];
+}
+extern "C" double reference_relative(const void *a, const void *b, int nr, int nc, int lda, int ldb,
+                                     int word) {
+    return word == 4 ? relative_impl<float>(a, b, nr, nc, lda, ldb)
+                     : relative_impl<double>(a, b, nr, nc, lda, ldb);
+}

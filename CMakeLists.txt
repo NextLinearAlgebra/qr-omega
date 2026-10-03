@@ -42,44 +42,46 @@ if(NOT EXISTS "${JSON_INCLUDE_DIR}/json.hpp")
   message(FATAL_ERROR "JSON_INCLUDE_DIR must contain json.hpp")
 endif()
 
-function(qr_omega_driver target directory source)
-  add_executable(${target} "${directory}/${source}")
+function(qr_omega_driver target)
+  add_executable(${target} benchmarks/qr_omega.cu)
   set_target_properties(${target} PROPERTIES
     CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES
     CUDA_STANDARD 17 CUDA_STANDARD_REQUIRED YES
     CUDA_ARCHITECTURES OFF RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
-  target_include_directories(${target} PRIVATE "${directory}/include" "${JSON_INCLUDE_DIR}")
+  target_include_directories(${target} PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}/include/qr_omega"
+    "${JSON_INCLUDE_DIR}")
   target_include_directories(${target} SYSTEM PRIVATE "${CUTLASS_ROOT}/include")
-  target_compile_definitions(${target} PRIVATE
-    TQR_CUTLASS_COMMIT="c900acd605e907f88b4554d59924893dcc19a3c3"
-    TQR_PANEL_PBLK=4 TQR_PANEL_PXPOSE=1 TQR_PANEL_XSPRE=1
-    TQR_PANEL_TDEFER=2 TQR_PANEL_AVP=1)
   target_compile_options(${target} PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:
     -O3;-DNDEBUG;--generate-code=arch=compute_90a,code=[compute_90a,sm_90a];
     --expt-relaxed-constexpr;--extended-lambda;-lineinfo;
     --ftz=false;--prec-div=true;--prec-sqrt=true;-Xcompiler=-pthread>)
-  target_link_libraries(${target} PRIVATE CUDA::cublas CUDA::cublasLt CUDA::cusolver CUDA::cuda_driver Threads::Threads)
+  target_link_libraries(${target} PRIVATE CUDA::cublas CUDA::cublasLt CUDA::cuda_driver Threads::Threads)
   install(TARGETS ${target} RUNTIME DESTINATION bin)
 endfunction()
 
-qr_omega_driver(qr_omega_single "${CMAKE_CURRENT_SOURCE_DIR}/single-gpu" qr_omega_single.cu)
+qr_omega_driver(qr_omega_single)
 if(QR_OMEGA_BUILD_MULTI_GPU)
   find_package(MPI REQUIRED COMPONENTS CXX)
   find_path(QR_NCCL_INCLUDE nccl_device/ll_buffer.h HINTS "${NCCL_ROOT}/include" REQUIRED)
   find_library(QR_NCCL_LIBRARY nccl HINTS "${NCCL_ROOT}/lib" "${NCCL_ROOT}/lib64" REQUIRED NO_DEFAULT_PATH)
   find_path(QR_NVSHMEM_INCLUDE nvshmem_host.h HINTS "${NVSHMEM_ROOT}/include" REQUIRED)
   find_library(QR_NVSHMEM_LIBRARY nvshmem_host HINTS "${NVSHMEM_ROOT}/lib" "${NVSHMEM_ROOT}/lib64" REQUIRED)
-  qr_omega_driver(qr_omega_multi "${CMAKE_CURRENT_SOURCE_DIR}/multi-gpu" qr_omega_multi.cu)
+  qr_omega_driver(qr_omega_multi)
   target_compile_definitions(qr_omega_multi PRIVATE TQR_MULTI=1)
   target_include_directories(qr_omega_multi SYSTEM PRIVATE "${QR_NCCL_INCLUDE}" "${QR_NVSHMEM_INCLUDE}")
   target_link_libraries(qr_omega_multi PRIVATE MPI::MPI_CXX "${QR_NCCL_LIBRARY}" "${QR_NVSHMEM_LIBRARY}")
-  # 3xTF32 multi-GPU measurements use promotion every two contraction tiles.
-  qr_omega_driver(qr_omega_multi_x3 "${CMAKE_CURRENT_SOURCE_DIR}/multi-gpu" qr_omega_multi.cu)
-  target_compile_definitions(qr_omega_multi_x3 PRIVATE TQR_MULTI=1 TQR_X3RS_PROMOTE=2)
-  target_include_directories(qr_omega_multi_x3 SYSTEM PRIVATE "${QR_NCCL_INCLUDE}" "${QR_NVSHMEM_INCLUDE}")
-  target_link_libraries(qr_omega_multi_x3 PRIVATE MPI::MPI_CXX "${QR_NCCL_LIBRARY}" "${QR_NVSHMEM_LIBRARY}")
 endif()
 
 if(QR_OMEGA_BUILD_REFERENCES)
   add_subdirectory(reproducers/references)
+endif()
+
+include(CTest)
+if(BUILD_TESTING)
+  find_package(Python3 3.9 REQUIRED COMPONENTS Interpreter)
+  add_test(NAME reproduction_contract
+    COMMAND "${Python3_EXECUTABLE}" -m unittest discover -s tests -v)
+  set_tests_properties(reproduction_contract PROPERTIES
+    WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}" LABELS "cpu")
 endif()

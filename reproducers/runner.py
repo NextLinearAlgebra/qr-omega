@@ -1,194 +1,208 @@
 #!/usr/bin/env python3
-"""Run the measured QR-Omega configurations of the paper, keeping logs and numerical checks for every case."""
+"""Run the QR-Omega configurations measured in the paper and compare each with its published time and errors."""
+
 import argparse
-import copy
-import datetime as dt
-import hashlib
+import datetime
 import json
 import math
 import os
-from pathlib import Path
 import shlex
 import shutil
 import subprocess
 import sys
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+PRESETS = ROOT / "reproducers" / "presets.json"
 MODES = ("fp64", "fp32", "tf32", "3xtf32")
+SMOKE_N = 4096
 
 
-def replace_option(args, option, value):
-    args[args.index(option) + 1] = str(value)
+def is_headline(case):
+    """The small-matrix speedups and the large throughputs quoted in the paper."""
+    gpus, n, mode = case["gpus"], case["n"], case["mode"]
+    if gpus == 1:
+        return n in (16384, 65536, 131072) or (n in (256, 1024) and mode in ("fp64", "fp32"))
+    if gpus == 4:
+        return (
+            n == 131072
+            or (n == 229376 and mode in ("fp64", "fp32"))
+            or (n == 327680 and mode == "tf32")
+        )
+    return n == 229376  # the strong-scaling points on two and three GPUs
 
 
-def cases(kind, sizes, modes, gpus, smoke):
-    presets = json.loads((ROOT / "reproducers" / "presets" / f"{kind}.json").read_text())
-    if smoke and kind == "multi-gpu":
-        selected = []
-        for mode in modes:
-            template = next((c for c in presets if c["mode"] == mode),
-                            next(c for c in presets if c["mode"] == "fp32"))
-            cell = copy.deepcopy(template)
-            cell = {k: v for k, v in cell.items() if not k.startswith("published_")}
-            cell.update(n=4096, mode=mode, gpus=gpus,
-                        published_validation="smoke test; not a paper measurement")
-            for key, val in (("--m",4096), ("--n",4096), ("--gradix",gpus), ("--panel-groups",32)):
-                replace_option(cell["args"], key, val)
-            replace_option(cell["args"], "--precision", "fp64" if mode == "fp64" else "fp32")
-            replace_option(cell["args"], "--fp32-math", {"fp64":"ieee", "fp32":"ieee", "tf32":"tf32", "3xtf32":"x3"}[mode])
-            if mode == "3xtf32":
-                cell["env"].update(TQR_X3RS="1", TQR_PACK_VR_TILED="1", TQR_GMMA_NP="1")
-            selected.append(cell)
-        return selected
-    if modes is None:
-        selected = [c for c in presets if c["n"] in sizes and c["gpus"] == gpus]
-        missing_sizes = set(sizes) - {c["n"] for c in selected}
-        if missing_sizes:
-            raise ValueError(f"No measured presets for sizes {sorted(missing_sizes)} on {gpus} GPUs; use --list to see coverage")
-        return sorted(selected, key=lambda c: (c["n"], MODES.index(c["mode"])))
-    selected = [c for c in presets if c["n"] in sizes and c["mode"] in modes and c["gpus"] == gpus]
-    missing = {(n, m) for n in sizes for m in modes} - {(c["n"],c["mode"]) for c in selected}
-    if missing:
-        raise ValueError(f"No measured presets for {sorted(missing)} on {gpus} GPUs; use --list to see coverage")
-    return sorted(selected, key=lambda c: (c["n"], MODES.index(c["mode"])))
+def smoke_case(presets, mode, gpus):
+    """A quick unpublished case: the measured schedule of n = 4096 on one GPU, a shrunk one otherwise."""
+    if gpus == 1:
+        base = next(c for c in presets if (c["gpus"], c["mode"], c["n"]) == (1, mode, SMOKE_N))
+        options = base["options"]
+    else:
+        base = next(c for c in presets if c["gpus"] > 1 and c["mode"] == mode)
+        options = {**base["options"], "groups": 32}
+    return {"gpus": gpus, "mode": mode, "n": SMOKE_N, "reps": base["reps"], "options": options}
 
 
-def cpu_affinity():
-    for line in Path("/proc/self/status").read_text().splitlines():
-        if line.startswith("Cpus_allowed_list:"):
-            return line.split(":", 1)[1].strip()
-    raise RuntimeError("Linux CPU affinity information is unavailable")
+def select(presets, args):
+    modes = args.modes or MODES
+    if args.suite == "smoke" and not args.sizes:
+        return [smoke_case(presets, mode, args.gpus) for mode in modes]
+    cases = [
+        c
+        for c in presets
+        if c["gpus"] == args.gpus
+        and c["mode"] in modes
+        and (c["n"] in args.sizes if args.sizes else args.suite == "paper" or is_headline(c))
+    ]
+    measured = {(c["n"], c["mode"]) for c in cases}
+    wanted = {(n, mode) for n in args.sizes or () for mode in args.modes or ()}
+    unmeasured_sizes = set(args.sizes or ()) - {n for n, _ in measured}
+    if not cases or wanted - measured or unmeasured_sizes:
+        raise ValueError("no measured preset for the request; --list shows the measured cases")
+    return sorted(cases, key=lambda c: (c["n"], MODES.index(c["mode"])))
 
 
-def environment(cell):
-    # Never let another experiment's TQR_* settings silently change a preset.
-    env = {k:v for k,v in os.environ.items() if not k.startswith("TQR_")}
-    env.update(cell["env"])
-    cpus = cpu_affinity()
-    env.update(TQR_REQUIRED_CPUS=cpus, TQR_EXPECT_CPUS=cpus,
-               TQR_MEASUREMENT_CLASS="artifact-reproduction",
-               CUDA_MODULE_LOADING="EAGER", NVIDIA_TF32_OVERRIDE="0",
-               OMP_NUM_THREADS="1", OPENBLAS_NUM_THREADS="1", MKL_NUM_THREADS="1")
-    return env
+def command(case, args, result):
+    binary = args.build / "bin" / ("qr_omega_single" if args.gpus == 1 else "qr_omega_multi")
+    size, reps = str(case["n"]), str(args.reps or case["reps"])
+    argv = [str(binary), "--mode", case["mode"], "--m", size, "--n", size, "--reps", reps]
+    for key, value in case["options"].items():
+        argv += [f"--{key}"] if value is True else [f"--{key}", str(value)]
+    argv += ["--output", str(result)]
+    if args.gpus > 1:
+        argv = [args.mpi, "--bind-to", "none", "--oversubscribe", "-np", str(args.gpus), *argv]
+    return binary, argv
 
 
-def validate_result(path, n, *, mode=None, gpus=None, full_q=False):
-    data = json.loads(path.read_text())
-    check = data.get("validation", {})
-    if data.get("status") != 0 or data.get("eligible_numerically") is not True or check.get("pass") is not True:
-        raise ValueError(f"Factorization or numerical validation failed: {path}")
-    if check.get("full_residual_coverage") is not True or check.get("input_columns_checked") != n:
-        raise ValueError(f"Incomplete reconstruction check: {path}")
-    if data.get("m") != n or data.get("n") != n:
-        raise ValueError(f"Unexpected matrix dimensions: {path}")
-    expected_mode = "fp32x3" if mode == "3xtf32" else mode
-    if mode is not None and data.get("precision_mode") != expected_mode:
-        raise ValueError(f"Unexpected precision mode: {path}")
-    if gpus is not None and data.get("gpus") != gpus:
-        raise ValueError(f"Unexpected GPU count: {path}")
-    full_q_check = check.get("full_Q_Gram", {}).get("pass")
-    if full_q_check is False or (full_q and full_q_check is not True):
-        raise ValueError(f"Full-Q check failed: {path}")
-    timing = data.get("timing", {}).get("reused_median_s")
-    if not isinstance(timing, (int, float)) or not math.isfinite(timing) or timing <= 0:
-        raise ValueError(f"Missing or invalid factorization time: {path}")
-    return data
+def load_record(path, case, reps):
+    """Read a driver record; reject it unless the factorization ran, was timed and passed its checks."""
+    record = json.loads(path.read_text())
+    expected = {"status": 0, "pass": True, "m": case["n"], "n": case["n"]}
+    expected.update(mode=case["mode"], gpus=case["gpus"])
+    for key, value in expected.items():
+        if record.get(key) != value:
+            raise ValueError(f"{key} is {record.get(key)!r}, expected {value!r}")
+    times = record.get("times_s") or []
+    numbers = [record.get(key) for key in ("median_s", "residual", "orthogonality")] + times
+    if any(type(x) not in (int, float) or not math.isfinite(x) or x < 0 for x in numbers):
+        raise ValueError("missing or invalid time or numerical error")
+    if len(times) != reps or min(times) <= 0 or record["median_s"] != sorted(times)[reps // 2]:
+        raise ValueError("incomplete or inconsistent timing samples")
+    return record
 
 
-def main(kind):
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--sizes", nargs="+", type=int, help="Measured matrix orders (default: 131072)")
-    parser.add_argument("--modes", nargs="+", choices=MODES,
-                        help="Default: available measured modes at each size; all modes for --smoke")
-    parser.add_argument("--gpus", type=int, default=1 if kind == "single-gpu" else 4)
-    parser.add_argument("--build", type=Path, default=ROOT / "build")
-    parser.add_argument("--output", type=Path)
-    parser.add_argument("--reps", type=int, help="Override the recorded repetition count")
-    parser.add_argument("--timeout", type=int, default=7200, help="Per-case timeout in seconds, including validation")
-    parser.add_argument("--smoke", action="store_true", help="Validate all requested modes at n=4096")
-    parser.add_argument("--plan", action="store_true", help="Print commands without launching or writing files")
-    parser.add_argument("--list", action="store_true", help="List available measured presets")
-    parser.add_argument("--mpi", default="mpirun", help="Open MPI launcher executable")
-    args = parser.parse_args()
-    if args.list:
-        for cell in json.loads((ROOT / "reproducers" / "presets" / f"{kind}.json").read_text()):
-            print(cell["gpus"], cell["mode"], cell["n"])
-        return
-    if args.gpus not in ((1,) if kind == "single-gpu" else (2,3,4)):
-        parser.error("single-gpu requires one GPU; multi-gpu supports 2, 3, or 4 GPUs within one node")
-    if args.reps is not None and args.reps < 1 or args.timeout < 1:
-        parser.error("Repetitions and timeout must be positive")
-    if args.smoke and args.sizes:
-        parser.error("Use either --smoke or --sizes")
-    sizes = [4096] if args.smoke else args.sizes or [131072]
-    modes = args.modes if args.modes is not None else (list(MODES) if args.smoke else None)
-    selected = cases(kind, sizes, modes, args.gpus, args.smoke)
-    stamp = dt.datetime.now(dt.timezone.utc).strftime("%Y%m%dT%H%M%S.%fZ")
-    output = (args.output or ROOT / "results" / f"{kind}-{stamp}").resolve()
-    if not args.plan:
-        if output.exists():
-            raise FileExistsError(f"Refusing to overwrite results: {output}")
-        if kind == "multi-gpu" and shutil.which(args.mpi) is None:
-            raise FileNotFoundError(f"MPI launcher not found: {args.mpi}")
-    commands = []
-    for cell in selected:
-        binary = "qr_omega_single" if kind == "single-gpu" else (
-            "qr_omega_multi_x3" if cell["mode"] == "3xtf32" else "qr_omega_multi")
-        binary_path = (args.build / "bin" / binary).resolve()
-        argv = list(cell["args"])
-        if args.reps is not None:
-            replace_option(argv, "--reps", args.reps)
-        if args.smoke and kind == "single-gpu":
-            argv.append("--full-q")
-        result = output / f"p{args.gpus}-{cell['mode']}-{cell['n']}.json"
-        command = [str(binary_path), *argv, "--output", str(result)]
-        if kind == "multi-gpu":
-            # One rank per GPU; --oversubscribe lets Open MPI launch them from a single-task allocation step.
-            command = [args.mpi, "--bind-to", "none", "--oversubscribe", "-np", str(args.gpus), *command]
-        commands.append((cell, binary_path, result, command))
-        if not args.plan and not binary_path.is_file():
-            raise FileNotFoundError(f"Build the driver first: {binary_path}")
-    if not args.plan:
-        output.mkdir(parents=True, exist_ok=False)
-    manifest = {"schema":1, "kind":kind, "created_utc":stamp, "cases":[]}
-    for cell, binary_path, result, command in commands:
-        env = environment(cell)
-        preset_env = {k: v for k, v in env.items()
-                      if k.startswith("TQR_") or k in ("CUDA_MODULE_LOADING", "NVIDIA_TF32_OVERRIDE",
-                                                       "OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS")}
-        unset = [item for key in sorted(os.environ) if key.startswith("TQR_") for item in ("-u", key)]
-        print(shlex.join(["env", *unset, *(f"{k}={v}" for k,v in preset_env.items()), *command]), flush=True)
-        if args.plan:
-            continue
-        item = {"preset":cell, "command":command, "environment":preset_env,
-                "cpu_affinity":env["TQR_REQUIRED_CPUS"],
-                "binary_sha256":hashlib.sha256(binary_path.read_bytes()).hexdigest(),
-                "cuda_visible_devices":env.get("CUDA_VISIBLE_DEVICES"), "result":result.name}
-        manifest["cases"].append(item)
-        manifest_path = output / "manifest.json"
-        manifest_path.write_text(json.dumps(manifest, indent=2) + "\n")
-        try:
-            with result.with_suffix(".log").open("w") as log:
-                completed = subprocess.run(command, env=env, stdout=log, stderr=subprocess.STDOUT,
-                                           timeout=args.timeout, check=True)
-            data = validate_result(result, cell["n"], mode=cell["mode"], gpus=args.gpus,
-                                   full_q=args.smoke and kind == "single-gpu")
-            item.update(returncode=completed.returncode, validation="passed",
-                        time_s=data["timing"]["reused_median_s"],
-                        result_sha256=hashlib.sha256(result.read_bytes()).hexdigest())
-            print(f"PASS {result.name}: {item['time_s']:.6g} s; full-column residual + orthogonality checks", flush=True)
-        except (OSError, ValueError, KeyError, subprocess.SubprocessError) as exc:
-            item.update(validation="failed", error=str(exc))
-            raise
-        finally:
-            manifest_path.write_text(json.dumps(manifest, indent=2) + "\n")
-    if not args.plan:
-        print(f"Results: {output}")
+def paper_ratios(case, record):
+    """Measured over published time and errors; empty for a smoke case."""
+    measured = {"time_s": record["median_s"], **record}
+    return {
+        key: measured[key] / case[f"published_{key}"]
+        for key in ("time_s", "residual", "orthogonality")
+        if f"published_{key}" in case
+    }
 
 
-def entry(kind):
+def run_case(case, args, output):
+    name = f"p{case['gpus']}-{case['mode']}-{case['n']}"
+    result = output / f"{name}.json"
+    binary, argv = command(case, args, result)
+    print(shlex.join(argv), flush=True)
+    if args.plan:
+        return None
+    if not binary.is_file():
+        raise FileNotFoundError(f"build the driver first: {binary}")
+    entry = {"case": case, "command": argv, "result": result.name}
+    env = {**os.environ, "CUDA_MODULE_LOADING": "EAGER", "NVIDIA_TF32_OVERRIDE": "0"}
     try:
-        main(kind)
-    except (OSError, ValueError, KeyError, subprocess.SubprocessError) as exc:
-        print(f"reproduction failed: {exc}", file=sys.stderr)
+        with (output / f"{name}.log").open("w") as log:
+            subprocess.run(
+                argv,
+                env=env,
+                stdout=log,
+                stderr=subprocess.STDOUT,
+                timeout=args.timeout,
+                check=True,
+            )
+        record = load_record(result, case, args.reps or case["reps"])
+        ratios = paper_ratios(case, record)
+        entry.update(time_s=record["median_s"], ratios=ratios)
+        errors = [ratios.get(key, 0) for key in ("residual", "orthogonality")]
+        if ratios.get("time_s", 0) > args.max_slowdown or max(errors) > args.max_error_ratio:
+            raise ValueError(f"worse than the paper: ratios {ratios}")
+        note = ""
+        if ratios:
+            tflops = (4 / 3) * case["n"] ** 3 / record["median_s"] / 1e12
+            note = f"; {tflops:.2f} TFLOP/s; {ratios['time_s']:.3f} x paper time"
+        print(f"PASS {name}: {record['median_s']:.6g} s{note}", flush=True)
+    except (OSError, ValueError, subprocess.SubprocessError) as error:
+        entry["error"] = str(error)
+        print(f"FAIL {name}: {error}; log: {output / name}.log", file=sys.stderr, flush=True)
+    return entry
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--gpus", type=int, choices=(1, 2, 3, 4), default=1)
+    parser.add_argument(
+        "--suite",
+        choices=("headlines", "paper", "smoke"),
+        default="headlines",
+        help="headlines (default), every measured case, or a quick n = 4096 check",
+    )
+    parser.add_argument(
+        "--sizes", nargs="+", type=int, help="measured matrix orders to run instead"
+    )
+    parser.add_argument("--modes", nargs="+", choices=MODES, help="default: every measured mode")
+    parser.add_argument("--build", type=Path, default=ROOT / "build")
+    parser.add_argument("--output", type=Path, help="default: results/<timestamp>")
+    parser.add_argument("--reps", type=int, help="timed repetitions instead of the recorded count")
+    parser.add_argument("--timeout", type=int, default=7200, help="seconds per case")
+    parser.add_argument(
+        "--max-slowdown", type=float, default=1.04, help="allowed time / paper time"
+    )
+    parser.add_argument(
+        "--max-error-ratio", type=float, default=1.25, help="allowed error / paper error"
+    )
+    parser.add_argument("--mpi", default="mpirun", help="Open MPI launcher")
+    parser.add_argument("--plan", action="store_true", help="print the commands and run nothing")
+    parser.add_argument("--list", action="store_true", help="list the measured cases")
+    args = parser.parse_args()
+    if (args.reps is not None and args.reps < 1) or args.timeout < 1:
+        parser.error("repetitions and timeout must be positive")
+    if min(args.max_slowdown, args.max_error_ratio) < 1:
+        parser.error("the allowed ratios must be at least 1")
+    return args
+
+
+def main():
+    args = parse_args()
+    presets = json.loads(PRESETS.read_text())
+    if args.list:
+        for case in presets:
+            if case["gpus"] == args.gpus:
+                print(case["gpus"], case["mode"], case["n"])
+        return
+    cases = select(presets, args)
+    stamp = datetime.datetime.now(datetime.timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    output = (args.output or ROOT / "results" / stamp).resolve()
+    if not args.plan:
+        if args.gpus > 1 and shutil.which(args.mpi) is None:
+            raise FileNotFoundError(f"MPI launcher not found: {args.mpi}")
+        output.mkdir(parents=True)  # never overwrite earlier results
+    entries = []
+    for case in cases:
+        entries.append(run_case(case, args, output))
+        if not args.plan:
+            (output / "manifest.json").write_text(json.dumps(entries, indent=2) + "\n")
+    failed = [entry["result"] for entry in entries if entry and "error" in entry]
+    if not args.plan:
+        print(f"results: {output}")
+    if failed:
+        raise ValueError(f"{len(failed)} case(s) failed: {', '.join(failed)}")
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except (OSError, ValueError) as error:
+        print(f"reproduction failed: {error}", file=sys.stderr)
         raise SystemExit(1)

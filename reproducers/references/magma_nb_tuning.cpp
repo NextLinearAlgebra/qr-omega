@@ -11,9 +11,9 @@
 namespace {
 std::atomic<unsigned long long> calls[2]{};
 using Getter = magma_int_t (*)(magma_int_t, magma_int_t);
-magma_int_t get_nb(int which, const char* symbol, magma_int_t m, magma_int_t n) {
+magma_int_t get_nb(int which, const char *symbol, magma_int_t m, magma_int_t n) {
     ++calls[which];
-    if (const char* value = std::getenv("TQR_MAGMA_QR_NB")) {
+    if (const char *value = std::getenv("TQR_MAGMA_QR_NB")) {
         size_t used = 0;
         long long nb = std::stoll(value, &used);
         if (used != std::string(value).size() || nb < 1 || nb > 2048)
@@ -21,10 +21,11 @@ magma_int_t get_nb(int which, const char* symbol, magma_int_t m, magma_int_t n) 
         return magma_int_t(nb);
     }
     auto native = reinterpret_cast<Getter>(dlsym(RTLD_NEXT, symbol));
-    if (!native) throw std::runtime_error("native_MAGMA_tuning_function_unavailable");
+    if (!native)
+        throw std::runtime_error("native_MAGMA_tuning_function_unavailable");
     return native(m, n);
 }
-}
+} // namespace
 
 extern "C" magma_int_t magma_get_sgeqrf_nb(magma_int_t m, magma_int_t n) {
     return get_nb(0, "magma_get_sgeqrf_nb", m, n);

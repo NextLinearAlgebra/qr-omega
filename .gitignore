@@ -2,8 +2,6 @@
 /.venv/
 /results/
 /deps/
-/plots/paper/figures/
-/plots/figures/data/
 __pycache__/
 *.pyc
 *.aux

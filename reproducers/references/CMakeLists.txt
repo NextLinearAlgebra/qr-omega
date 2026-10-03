@@ -12,7 +12,7 @@ function(qr_reference target source)
   set_target_properties(${target} PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES
     CUDA_STANDARD 17 CUDA_STANDARD_REQUIRED YES
     CUDA_ARCHITECTURES 90 RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
-  target_include_directories(${target} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}" "${PROJECT_SOURCE_DIR}/multi-gpu/include"
+  target_include_directories(${target} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}" "${PROJECT_SOURCE_DIR}/include/qr_omega"
     "${JSON_INCLUDE_DIR}")
   target_compile_definitions(${target} PRIVATE TQR_REFERENCE_VALIDATE=1)
   target_compile_options(${target} PRIVATE
