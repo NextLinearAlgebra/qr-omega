@@ -42,3 +42,11 @@
 | `--compose-groups` | TF32: groups of blocks of the Gram products of an aggregated T |
 | `--d-tiles` | 3xTF32: output tiles per thread block of the far D |
 | `--reps`, `--output` | Timed repetitions after one warm-up, and the JSON record |
+
+## Schedule selection
+
+`reproducers/runner.py --auto` and `python3 -m planner` take the driver options from a machine profile instead of
+a preset. `machine/probe/machine_probe.cu` measures the GPU and writes the profile; `machine/profile.py` turns it
+into latencies, bandwidths and the law of the vendor product. `planner/schedule.py` defines the admissible
+schedules and the memory inventory of the engine, `planner/model.py` the cost of a factorization, and
+`planner/plan.py` the search; `planner/kernels.json` holds the kernel constants that `planner/calibrate.py` fits.

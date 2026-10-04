@@ -16,6 +16,7 @@ ROOT = Path(__file__).resolve().parents[1]
 PRESETS = ROOT / "reproducers" / "presets.json"
 MODES = ("fp64", "fp32", "tf32", "3xtf32")
 SMOKE_N = 4096
+ENVIRONMENT = {"CUDA_MODULE_LOADING": "EAGER", "NVIDIA_TF32_OVERRIDE": "0"}
 
 
 def is_headline(case):
@@ -62,10 +63,22 @@ def select(presets, args):
     return sorted(cases, key=lambda c: (c["n"], MODES.index(c["mode"])))
 
 
+def planned(args):
+    """Cases of any size whose schedules the planner selects from the profile of the GPU."""
+    sys.path.insert(0, str(ROOT))
+    from machine import Machine
+    from machine.collect import cached
+    from planner.plan import case
+
+    machine = Machine.load(args.machine) if args.machine else Machine(cached(args.build)[0])
+    return [case(machine, mode, n, args.gpus) for n in args.sizes for mode in args.modes or MODES]
+
+
 def command(case, args, result):
     binary = args.build / "bin" / ("qr_omega_single" if args.gpus == 1 else "qr_omega_multi")
-    size, reps = str(case["n"]), str(args.reps or case["reps"])
-    argv = [str(binary), "--mode", case["mode"], "--m", size, "--n", size, "--reps", reps]
+    rows, columns = str(case.get("m", case["n"])), str(case["n"])
+    reps = str(args.reps or case["reps"])
+    argv = [str(binary), "--mode", case["mode"], "--m", rows, "--n", columns, "--reps", reps]
     for key, value in case["options"].items():
         argv += [f"--{key}"] if value is True else [f"--{key}", str(value)]
     argv += ["--output", str(result)]
@@ -77,7 +90,7 @@ def command(case, args, result):
 def load_record(path, case, reps):
     """Read a driver record; reject it unless the factorization ran, was timed and passed its checks."""
     record = json.loads(path.read_text())
-    expected = {"status": 0, "pass": True, "m": case["n"], "n": case["n"]}
+    expected = {"status": 0, "pass": True, "m": case.get("m", case["n"]), "n": case["n"]}
     expected.update(mode=case["mode"], gpus=case["gpus"])
     for key, value in expected.items():
         if record.get(key) != value:
@@ -111,7 +124,7 @@ def run_case(case, args, output):
     if not binary.is_file():
         raise FileNotFoundError(f"build the driver first: {binary}")
     entry = {"case": case, "command": argv, "result": result.name}
-    env = {**os.environ, "CUDA_MODULE_LOADING": "EAGER", "NVIDIA_TF32_OVERRIDE": "0"}
+    env = {**os.environ, **ENVIRONMENT}
     try:
         with (output / f"{name}.log").open("w") as log:
             subprocess.run(
@@ -162,6 +175,10 @@ def parse_args():
     parser.add_argument(
         "--max-error-ratio", type=float, default=1.25, help="allowed error / paper error"
     )
+    parser.add_argument(
+        "--auto", action="store_true", help="select the schedules of --sizes from the machine"
+    )
+    parser.add_argument("--machine", type=Path, help="machine profile for --auto (default: probe)")
     parser.add_argument("--mpi", default="mpirun", help="Open MPI launcher")
     parser.add_argument("--plan", action="store_true", help="print the commands and run nothing")
     parser.add_argument("--list", action="store_true", help="list the measured cases")
@@ -170,6 +187,8 @@ def parse_args():
         parser.error("repetitions and timeout must be positive")
     if min(args.max_slowdown, args.max_error_ratio) < 1:
         parser.error("the allowed ratios must be at least 1")
+    if args.auto and not args.sizes:
+        parser.error("--auto needs --sizes")
     return args
 
 
@@ -181,7 +200,7 @@ def main():
             if case["gpus"] == args.gpus:
                 print(case["gpus"], case["mode"], case["n"])
         return
-    cases = select(presets, args)
+    cases = planned(args) if args.auto else select(presets, args)
     stamp = datetime.datetime.now(datetime.timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     output = (args.output or ROOT / "results" / stamp).resolve()
     if not args.plan:

@@ -61,6 +61,20 @@ exceeds 1.25× the recorded value. These tolerances are configurable; a passing
 smoke test makes no performance claim. `--suite paper` runs the complete measured
 range. See [the measurement protocol](reproducers/README.md).
 
+For a size without a measured preset, or another GPU, the planner selects the
+schedule from a profile of the GPU:
+
+```sh
+cmake --build build --target machine_probe                          # once
+python3 -m planner --n 20000 --mode fp64 --run                      # probe, select, factor
+python3 reproducers/runner.py --auto --sizes 20000 --modes fp64 tf32
+```
+
+The probe measures the GPU in a few seconds, and the planner minimizes a cost
+model over the schedules that keep every carried product at c ≥ 2 and fit every
+memory level. [The profile](machine/README.md) is independent of QR;
+[the planner](planner/README.md) documents the model and its validation.
+
 Regenerate the five paper figures and headline table from the preserved data:
 
 ```sh
@@ -79,9 +93,11 @@ python3 -m venv .venv
 | `include/qr_omega/panel_*.cuh` | Panel factorizations: cooperative and register-resident |
 | `include/qr_omega/carrier_*.cuh` | The carried products on CUDA cores and tensor cores |
 | `include/qr_omega/transport.cuh` | Communication between the GPUs of a node |
+| `machine/` | The machine probe, its profiles, and the cost-model terms read from them |
+| `planner/` | Schedule selection from a profile: admissible schedules, cost model, calibration |
 | `reproducers/` | The runner, the measured presets, optional reference-library adapters |
 | `plots/` | The paper's data and the command that regenerates its figures |
-| `tests/` | Preset and runner checks that need no GPU |
+| `tests/` | Preset, runner and planner checks that need no GPU |
 
 [The code map](docs/code-map.md) follows the execution path and lists the driver options. Use `.clang-format` for
 CUDA/C++ and the Ruff settings in `pyproject.toml` for Python. Run the host checks with

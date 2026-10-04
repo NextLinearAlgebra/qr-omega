@@ -1,0 +1,634 @@
+{
+  "access": {
+    "l1": {
+      "capacity_bytes_observed": 131072.0,
+      "latency_cycles": 39.57659912109375,
+      "latency_s": 2.6384386656082757e-08
+    },
+    "l2": {
+      "capacity_bytes_observed": 33554432.0,
+      "capacity_bytes_reported": 62914560,
+      "latency_cycles": 246.22154235839844,
+      "latency_s": 1.6414761553320417e-07
+    },
+    "memory": {
+      "footprint_bytes": 1073741824.0,
+      "latency_cycles": 479.9639567774856,
+      "latency_s": 3.199758164629937e-07
+    },
+    "method": "single-thread dependent loads over a full-period cycle; cycles from clock64, in-kernel",
+    "shared": {
+      "latency_cycles": 28.94183349609375,
+      "latency_s": 1.9294546334323877e-08
+    },
+    "sweep": [
+      {
+        "cycles": 39.57659912109375,
+        "footprint_bytes": 4096,
+        "seconds": 2.6384765625e-08
+      },
+      {
+        "cycles": 39.576416015625,
+        "footprint_bytes": 8192,
+        "seconds": 2.6384765625e-08
+      },
+      {
+        "cycles": 39.576416015625,
+        "footprint_bytes": 16384,
+        "seconds": 2.6384765625e-08
+      },
+      {
+        "cycles": 39.576416015625,
+        "footprint_bytes": 32768,
+        "seconds": 2.6384765625e-08
+      },
+      {
+        "cycles": 39.576416015625,
+        "footprint_bytes": 65536,
+        "seconds": 2.63828125e-08
+      },
+      {
+        "cycles": 39.5694580078125,
+        "footprint_bytes": 131072,
+        "seconds": 2.63798828125e-08
+      },
+      {
+        "cycles": 133.11105346679688,
+        "footprint_bytes": 262144,
+        "seconds": 8.874072265625001e-08
+      },
+      {
+        "cycles": 215.48505401611328,
+        "footprint_bytes": 524288,
+        "seconds": 1.4365673828125001e-07
+      },
+      {
+        "cycles": 237.04058074951172,
+        "footprint_bytes": 1048576,
+        "seconds": 1.5802685546875e-07
+      },
+      {
+        "cycles": 246.22154235839844,
+        "footprint_bytes": 2097152,
+        "seconds": 1.64147705078125e-07
+      },
+      {
+        "cycles": 250.6417694091797,
+        "footprint_bytes": 4194304,
+        "seconds": 1.670947265625e-07
+      },
+      {
+        "cycles": 252.51428985595703,
+        "footprint_bytes": 8388608,
+        "seconds": 1.6834277343750002e-07
+      },
+      {
+        "cycles": 253.46543884277344,
+        "footprint_bytes": 16777216,
+        "seconds": 1.6897680664062502e-07
+      },
+      {
+        "cycles": 259.2097473144531,
+        "footprint_bytes": 33554432,
+        "seconds": 1.7280639648437502e-07
+      },
+      {
+        "cycles": 350.1858596801758,
+        "footprint_bytes": 67108864,
+        "seconds": 2.33457275390625e-07
+      },
+      {
+        "cycles": 405.04969024658203,
+        "footprint_bytes": 134217728,
+        "seconds": 2.70032958984375e-07
+      },
+      {
+        "cycles": 434.71622467041016,
+        "footprint_bytes": 268435456,
+        "seconds": 2.8981103515625e-07
+      },
+      {
+        "cycles": 453.3253631591797,
+        "footprint_bytes": 536870912,
+        "seconds": 3.02216796875e-07
+      },
+      {
+        "cycles": 466.2681121826172,
+        "footprint_bytes": 1073741824,
+        "seconds": 3.10845458984375e-07
+      }
+    ]
+  },
+  "arithmetic": {
+    "gemm": {
+      "fp16": {
+        "call_latency_s": 1.2128000147640705e-05,
+        "inner": [
+          {
+            "flops_per_s": 375434218455670.75,
+            "k": 128,
+            "q": 4096,
+            "rows": 32768
+          },
+          {
+            "flops_per_s": 659141717961096.4,
+            "k": 512,
+            "q": 4096,
+            "rows": 32768
+          },
+          {
+            "flops_per_s": 684402386908590.6,
+            "k": 1024,
+            "q": 4096,
+            "rows": 32768
+          }
+        ],
+        "peak_flops_per_s": 652495064169432.8,
+        "rank_k": {
+          "best_k": 2048,
+          "delta_s_per_flop_times_k": 3.7009849668486554e-13,
+          "gamma_s_per_flop": 1.2182729500686244e-15,
+          "k_half": 303.7894723543014,
+          "m": 8192,
+          "n": 8192,
+          "samples": [
+            {
+              "flops_per_s": 77358918531006.89,
+              "k": 32
+            },
+            {
+              "flops_per_s": 145809586603176.4,
+              "k": 64
+            },
+            {
+              "flops_per_s": 253719707035423.8,
+              "k": 128
+            },
+            {
+              "flops_per_s": 426257160043692.25,
+              "k": 256
+            },
+            {
+              "flops_per_s": 518590581118215.44,
+              "k": 512
+            },
+            {
+              "flops_per_s": 557932882277932.7,
+              "k": 1024
+            },
+            {
+              "flops_per_s": 593350473532526.9,
+              "k": 2048
+            }
+          ]
+        },
+        "seconds_per_flop": 1.5325786429862264e-15,
+        "square": {
+          "flops_per_s": 652495064169432.8,
+          "n": 8192
+        }
+      },
+      "fp32": {
+        "call_latency_s": 1.292799971997738e-05,
+        "inner": [
+          {
+            "flops_per_s": 37255535654645.234,
+            "k": 128,
+            "q": 4096,
+            "rows": 32768
+          },
+          {
+            "flops_per_s": 38290827663165.47,
+            "k": 512,
+            "q": 4096,
+            "rows": 32768
+          },
+          {
+            "flops_per_s": 38298339885026.97,
+            "k": 1024,
+            "q": 4096,
+            "rows": 32768
+          }
+        ],
+        "peak_flops_per_s": 39366530100470.6,
+        "rank_k": {
+          "best_k": 2048,
+          "delta_s_per_flop_times_k": 8.186910536272904e-13,
+          "gamma_s_per_flop": 2.659349012154429e-14,
+          "k_half": 30.7853933382005,
+          "m": 8192,
+          "n": 8192,
+          "samples": [
+            {
+              "flops_per_s": 19468774360537.195,
+              "k": 32
+            },
+            {
+              "flops_per_s": 25094462261254.38,
+              "k": 64
+            },
+            {
+              "flops_per_s": 28845418775599.16,
+              "k": 128
+            },
+            {
+              "flops_per_s": 31089610094290.367,
+              "k": 256
+            },
+            {
+              "flops_per_s": 37104266502557.25,
+              "k": 512
+            },
+            {
+              "flops_per_s": 38185633785466.35,
+              "k": 1024
+            },
+            {
+              "flops_per_s": 38853714621060.07,
+              "k": 2048
+            }
+          ]
+        },
+        "seconds_per_flop": 2.5402289646758723e-14,
+        "square": {
+          "flops_per_s": 39366530100470.6,
+          "n": 8192
+        }
+      },
+      "fp64": {
+        "call_latency_s": 1.1231999844312668e-05,
+        "inner": [
+          {
+            "flops_per_s": 45702810997758.586,
+            "k": 128,
+            "q": 4096,
+            "rows": 32768
+          },
+          {
+            "flops_per_s": 48303105091705.35,
+            "k": 512,
+            "q": 4096,
+            "rows": 32768
+          },
+          {
+            "flops_per_s": 47181628760427.086,
+            "k": 1024,
+            "q": 4096,
+            "rows": 32768
+          }
+        ],
+        "peak_flops_per_s": 49142555534307.88,
+        "rank_k": {
+          "best_k": 2048,
+          "delta_s_per_flop_times_k": 9.531063190821327e-13,
+          "gamma_s_per_flop": 1.969786448814888e-14,
+          "k_half": 48.386276576101146,
+          "m": 8192,
+          "n": 8192,
+          "samples": [
+            {
+              "flops_per_s": 19884107336076.832,
+              "k": 32
+            },
+            {
+              "flops_per_s": 30171457370843.16,
+              "k": 64
+            },
+            {
+              "flops_per_s": 37383951232147.6,
+              "k": 128
+            },
+            {
+              "flops_per_s": 43259410035307.3,
+              "k": 256
+            },
+            {
+              "flops_per_s": 45289319250349.336,
+              "k": 512
+            },
+            {
+              "flops_per_s": 47655141463847.664,
+              "k": 1024
+            },
+            {
+              "flops_per_s": 48488788174980.945,
+              "k": 2048
+            }
+          ]
+        },
+        "seconds_per_flop": 2.0348962098681868e-14,
+        "square": {
+          "flops_per_s": 49142555534307.88,
+          "n": 8192
+        }
+      },
+      "method": "cuBLAS GemmEx; minimum of three timed calls after a warm-up; fp32 is IEEE (pedantic), tf32 allows TF32 tensor operations",
+      "tf32": {
+        "call_latency_s": 1.1807999573647976e-05,
+        "inner": [
+          {
+            "flops_per_s": 208372180692279.56,
+            "k": 128,
+            "q": 4096,
+            "rows": 32768
+          },
+          {
+            "flops_per_s": 329874589653163.0,
+            "k": 512,
+            "q": 4096,
+            "rows": 32768
+          },
+          {
+            "flops_per_s": 346927885725321.8,
+            "k": 1024,
+            "q": 4096,
+            "rows": 32768
+          }
+        ],
+        "peak_flops_per_s": 342720008670201.75,
+        "rank_k": {
+          "best_k": 1024,
+          "delta_s_per_flop_times_k": 7.725302665048857e-13,
+          "gamma_s_per_flop": 2.9381929121519932e-15,
+          "k_half": 262.92700636156275,
+          "m": 8192,
+          "n": 8192,
+          "samples": [
+            {
+              "flops_per_s": 37251659576097.234,
+              "k": 32
+            },
+            {
+              "flops_per_s": 63928423714216.336,
+              "k": 64
+            },
+            {
+              "flops_per_s": 111754982339169.4,
+              "k": 128
+            },
+            {
+              "flops_per_s": 183263662374965.8,
+              "k": 256
+            },
+            {
+              "flops_per_s": 241507390379359.38,
+              "k": 512
+            },
+            {
+              "flops_per_s": 272143401390775.03,
+              "k": 1024
+            },
+            {
+              "flops_per_s": 265506595883157.8,
+              "k": 2048
+            }
+          ]
+        },
+        "seconds_per_flop": 2.9178337263707776e-15,
+        "square": {
+          "flops_per_s": 342720008670201.75,
+          "n": 8192
+        }
+      },
+      "tf32_override": "unset"
+    },
+    "simt": {
+      "fp32": {
+        "flops_per_s": 43749357498773.42,
+        "flops_per_s_per_sm": 661992856099.0773,
+        "fma_latency_cycles": 4.438682556152344,
+        "fma_latency_s": 2.9591202732403115e-09,
+        "seconds_per_flop": 2.2857478536182765e-14,
+        "unit": "fp32"
+      },
+      "fp64": {
+        "flops_per_s": 23987050519078.285,
+        "flops_per_s_per_sm": 363434264227.16595,
+        "fma_latency_cycles": 8.188922882080078,
+        "fma_latency_s": 5.459279281591624e-09,
+        "seconds_per_flop": 4.168916054121128e-14,
+        "unit": "fp64"
+      }
+    }
+  },
+  "bandwidth": {
+    "device_copy": {
+      "bandwidth_bytes_per_s": 2133387577374.965,
+      "latency_s": 5.37408000614147e-06,
+      "samples": [
+        {
+          "bytes": 4096.0,
+          "seconds": 5.375999957323074e-06
+        },
+        {
+          "bytes": 1048576.0,
+          "seconds": 5.504000000655651e-06
+        },
+        {
+          "bytes": 268435456.0,
+          "seconds": 0.00013120000064373018
+        }
+      ],
+      "seconds_per_byte": 4.68738081446248e-13
+    },
+    "device_to_host": {
+      "bandwidth_bytes_per_s": 51513633666.26212,
+      "latency_s": 5.424487069641378e-06,
+      "samples": [
+        {
+          "bytes": 4096.0,
+          "seconds": 5.504000000655651e-06
+        },
+        {
+          "bytes": 1048576.0,
+          "seconds": 2.425600029528141e-05
+        },
+        {
+          "bytes": 268435456.0,
+          "seconds": 0.005216383934020997
+        }
+      ],
+      "seconds_per_byte": 1.9412336673406346e-11
+    },
+    "host_to_device": {
+      "bandwidth_bytes_per_s": 55767791005.60087,
+      "latency_s": 5.334552787593913e-06,
+      "samples": [
+        {
+          "bytes": 4096.0,
+          "seconds": 5.4080002009868624e-06
+        },
+        {
+          "bytes": 1048576.0,
+          "seconds": 2.4320000782608988e-05
+        },
+        {
+          "bytes": 268435456.0,
+          "seconds": 0.004818784236907959
+        }
+      ],
+      "seconds_per_byte": 1.793149741038816e-11
+    },
+    "l1": {
+      "footprint_bytes": 16384,
+      "read_bytes_per_s_per_sm": 94611203453.31543
+    },
+    "l2": {
+      "footprint_bytes": 15728640,
+      "read_bytes_per_s": 11501326072092.697,
+      "read_bytes_per_s_per_sm": 77030186305.7406
+    },
+    "memory": {
+      "buffer_bytes": 2147483648,
+      "copy_bytes_per_s": 3918418685857.275,
+      "copy_bytes_per_s_per_sm": 64676342157.77069,
+      "copy_saturation_blocks": 128,
+      "method": "16-byte loads and stores, 1024 threads per block, contiguous chunk per block; copy counts read plus write",
+      "read_bytes_per_s": 4476008850605.26,
+      "read_bytes_per_s_per_sm": 37242270725.1073,
+      "read_saturation_blocks": 264,
+      "scaling": [
+        {
+          "blocks": 1,
+          "copy_bytes_per_s": 64676342157.77069,
+          "read_bytes_per_s": 37242270725.1073,
+          "write_bytes_per_s": 20676833217.280598
+        },
+        {
+          "blocks": 2,
+          "copy_bytes_per_s": 128127208495.22769,
+          "read_bytes_per_s": 74016084097.80774,
+          "write_bytes_per_s": 41325799091.87564
+        },
+        {
+          "blocks": 4,
+          "copy_bytes_per_s": 253093782364.70612,
+          "read_bytes_per_s": 148173714641.84854,
+          "write_bytes_per_s": 82399377379.25256
+        },
+        {
+          "blocks": 8,
+          "copy_bytes_per_s": 489260050860.8979,
+          "read_bytes_per_s": 298798134718.88495,
+          "write_bytes_per_s": 162697619944.5455
+        },
+        {
+          "blocks": 16,
+          "copy_bytes_per_s": 927302249962.1904,
+          "read_bytes_per_s": 601086165750.4309,
+          "write_bytes_per_s": 326516144183.7945
+        },
+        {
+          "blocks": 32,
+          "copy_bytes_per_s": 1683086393890.3076,
+          "read_bytes_per_s": 1168024794041.272,
+          "write_bytes_per_s": 624529931825.4017
+        },
+        {
+          "blocks": 64,
+          "copy_bytes_per_s": 2852297816669.5786,
+          "read_bytes_per_s": 2214302401634.273,
+          "write_bytes_per_s": 1245339654796.9114
+        },
+        {
+          "blocks": 128,
+          "copy_bytes_per_s": 3749726880982.106,
+          "read_bytes_per_s": 3738655325765.6294,
+          "write_bytes_per_s": 1873188788430.3237
+        },
+        {
+          "blocks": 132,
+          "copy_bytes_per_s": 3778755017324.4087,
+          "read_bytes_per_s": 3810401798007.2485,
+          "write_bytes_per_s": 1937824550193.3481
+        },
+        {
+          "blocks": 264,
+          "copy_bytes_per_s": 3918418685857.275,
+          "read_bytes_per_s": 4476008850605.26,
+          "write_bytes_per_s": 1950100326133.4434
+        },
+        {
+          "blocks": 528,
+          "copy_bytes_per_s": 3585063162586.6157,
+          "read_bytes_per_s": 4447531419157.582,
+          "write_bytes_per_s": 1928690840166.4546
+        }
+      ],
+      "write_bytes_per_s": 1950100326133.4434,
+      "write_bytes_per_s_per_sm": 20676833217.280598
+    },
+    "peer": null,
+    "shared": {
+      "footprint_bytes": 32768,
+      "read_bytes_per_s_per_sm": 165534140495.64297
+    }
+  },
+  "concurrency": {
+    "method": "compute-bound kernels on two streams; elapsed time of the pair over one kernel alone. half: one block per SM on half of the SMs each (1 = disjoint SMs run side by side); all: every warp slot taken by each",
+    "two_streams_all_sms_multiplier": 2.0001334610395407,
+    "two_streams_half_sms_multiplier": 1.0031216805509433
+  },
+  "device": {
+    "clock_hz": 1500000483.5452764,
+    "compute_capability": [
+      9,
+      0
+    ],
+    "cuda_driver": 13000,
+    "cuda_runtime": 13000,
+    "l2_bytes": 62914560,
+    "max_threads_per_block": 1024,
+    "max_threads_per_sm": 2048,
+    "memory_free_bytes": 149568880640,
+    "memory_total_bytes": 150121545728,
+    "name": "NVIDIA H200",
+    "registers_per_block": 65536,
+    "registers_per_sm": 65536,
+    "shared_bytes_per_block": 49152,
+    "shared_bytes_per_block_optin": 232448,
+    "shared_bytes_per_sm": 233472,
+    "sm_count": 132,
+    "uuid": "35469031-5135-3f9e-d47d-4472e455c6de",
+    "warp_size": 32
+  },
+  "duration_s": 6.880552358925343,
+  "latency": {
+    "barrier": [
+      {
+        "cycles": 89.27020263671875,
+        "seconds": 5.9513439647184956e-08,
+        "threads": 32
+      },
+      {
+        "cycles": 103.88165283203125,
+        "seconds": 6.925440173388804e-08,
+        "threads": 256
+      },
+      {
+        "cycles": 245.7574462890625,
+        "seconds": 1.638382183032537e-07,
+        "threads": 1024
+      }
+    ],
+    "block_s": 6.110419120549209e-10,
+    "host_enqueue_s": 1.735985279083252e-06,
+    "host_event_wait_s": 7.245689630508423e-06,
+    "host_launch_and_wait_s": 6.981194019317627e-06,
+    "launch_async_s": 1.9657500088214875e-06,
+    "launch_full_grid_s": 4.639999940991402e-06,
+    "launch_sync_s": 4.639999940991402e-06,
+    "stream_fork_join_s": 1.1008000001311302e-05
+  },
+  "node": {
+    "cpu_affinity": "4-7,20-31",
+    "cpu_model": "Intel(R) Xeon(R) Platinum 8480C",
+    "gpu_count": 1,
+    "host_threads": 224,
+    "peer_access": [
+      1
+    ]
+  },
+  "probe": "machine-probe/1",
+  "schema": "machine-profile/1"
+}

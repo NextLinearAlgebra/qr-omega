@@ -77,6 +77,18 @@ if(QR_OMEGA_BUILD_REFERENCES)
   add_subdirectory(reproducers/references)
 endif()
 
+# The machine probe uses portable CUDA and cuBLAS only, so it is built for the GPUs of the build
+# host (or the list in MACHINE_PROBE_ARCHITECTURES), not only for Hopper.
+set(MACHINE_PROBE_ARCHITECTURES "native" CACHE STRING "CUDA architectures of machine_probe")
+add_executable(machine_probe machine/probe/machine_probe.cu)
+set_target_properties(machine_probe PROPERTIES
+  CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES CUDA_STANDARD 17 CUDA_STANDARD_REQUIRED YES
+  CUDA_ARCHITECTURES "${MACHINE_PROBE_ARCHITECTURES}" RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
+target_include_directories(machine_probe PRIVATE "${JSON_INCLUDE_DIR}")
+target_compile_options(machine_probe PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:-O3>)
+target_link_libraries(machine_probe PRIVATE CUDA::cublas Threads::Threads)
+install(TARGETS machine_probe RUNTIME DESTINATION bin)
+
 include(CTest)
 if(BUILD_TESTING)
   find_package(Python3 3.9 REQUIRED COMPONENTS Interpreter)

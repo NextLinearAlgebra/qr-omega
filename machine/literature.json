@@ -1,0 +1,118 @@
+{
+  "about": "Published micro-benchmark measurements, in the vocabulary of a machine profile. They are reference points for a new profile (a probe whose L1 latency is 300 cycles is wrong) and the source of the scaled what-if profiles; they are never an input of a schedule on a GPU that was probed.",
+  "sources": {
+    "jarmusch2025": "A. Jarmusch, S. Chandrasekaran. Microbenchmarking NVIDIA's Blackwell Architecture: An in-depth Architectural Analysis. arXiv:2512.02189, 2025.",
+    "jarmusch2025dissect": "A. Jarmusch, N. Graddon, S. Chandrasekaran. Dissecting the NVIDIA Blackwell Architecture with Microbenchmarks. arXiv:2507.10789, 2025.",
+    "jarmusch2026model": "A. Jarmusch, S. Chandrasekaran. Microbenchmark-Driven Analytical Performance Modeling Across Modern GPU Architectures. arXiv:2605.04178, 2026.",
+    "luo2025": "W. Luo, R. Fan, Z. Li, D. Du, H. Liu, Q. Wang, X. Chu. Dissecting the NVIDIA Hopper Architecture through Microbenchmarking and Multiple Level Analysis. arXiv:2501.12084, 2025.",
+    "jia2018": "Z. Jia, M. Maggioni, B. Staiger, D. P. Scarpazza. Dissecting the NVIDIA Volta GPU Architecture via Microbenchmarking. arXiv:1804.06826, 2018.",
+    "mei2017": "X. Mei, X. Chu. Dissecting GPU Memory Hierarchy through Microbenchmarking. IEEE TPDS 28(1), 2017."
+  },
+  "devices": {
+    "B200": {
+      "architecture": "Blackwell",
+      "jarmusch2025": {
+        "sm_count": 148,
+        "memory_peak_bytes_per_s": 8.0e12,
+        "stream_triad_bytes_per_s": {"4GB": 4.134e12, "16GB": 4.141e12, "64GB": 7.42e12, "128GB": 7.48e12},
+        "load_global_plateau_bytes_per_s": 3.8e12,
+        "tmem_capacity_bytes_per_sm": 262144,
+        "tmem_read_bytes_per_s_per_sm": 16e12,
+        "tmem_write_bytes_per_s_per_sm": 8e12,
+        "tma_latency_cycles": 420,
+        "tensor_latency_cycles": {"tcgen05.mma m64n64k16": 11.0, "tcgen05.mma m128n128k16": 11.3, "tcgen05.mma m256n256k16": 11.4},
+        "tensor_flops_per_s": {"fp64": 44.8e12, "fp32": 481.2e12, "tf32": 964.5e12, "bf16": 1926.8e12, "fp16": 1929.2e12, "fp8": 3851.4e12, "fp6": 5134.8e12, "fp4": 7702.5e12},
+        "dgemm_flops_per_s": {"8192": 35.45e12, "16384": 36.14e12, "32768": 36.30e12},
+        "ratio_to_H200": {"fp64_dgemm": 1.92, "tensor": 1.27, "stream_triad": 1.71, "power": 1.14}
+      },
+      "jarmusch2026model": {
+        "sm_count": 176, "max_warps_per_sm": 64, "memory_peak_bytes_per_s": 8.0e12, "memory_capacity_bytes": 192e9,
+        "l2_bytes": 64e6, "barrier_latency_cycles": [40, 50], "host_transfer_bytes_per_s": 45e9,
+        "memcpy_launch_s": 2e-6, "host_sync_s": 3e-6
+      }
+    },
+    "H200": {
+      "architecture": "Hopper",
+      "jarmusch2025": {
+        "memory_peak_bytes_per_s": 4.8e12,
+        "stream_triad_bytes_per_s": {"4GB": 2.88e12, "16GB": 2.91e12, "64GB": 4.35e12, "128GB": 4.38e12},
+        "global_latency_cycles": 1000,
+        "tensor_latency_cycles": {"wgmma m64n64k16": 32.0, "wgmma m64n128k16": 64.0, "wgmma m64n256k16": 128.0},
+        "tensor_flops_per_s": {"fp64": 34.0e12, "fp32": 378.4e12, "tf32": 756.9e12, "bf16": 1513.5e12, "fp16": 1515.2e12, "fp8": 3026.9e12},
+        "dgemm_flops_per_s": {"8192": 18.2e12, "16384": 18.7e12, "32768": 18.9e12}
+      },
+      "this_work": {
+        "note": "machine/profiles/h200.json; the vendor DGEMM of this profile is 3.4 times the DGEMM figure above and exceeds its FP64 peak, so only the ratios of that source are used",
+        "clock_hz": 1.978e9, "l1_latency_cycles": 39.6, "shared_latency_cycles": 28.9, "l2_latency_cycles": 278,
+        "memory_latency_cycles": 582, "memory_read_bytes_per_s": 4.48e12, "memory_write_bytes_per_s": 2.02e12,
+        "gemm_flops_per_s": {"fp64": 64.8e12, "fp32": 51.1e12, "tf32": 450.2e12, "fp16": 864.0e12}
+      }
+    },
+    "H100/H800": {
+      "architecture": "Hopper",
+      "luo2025": {
+        "device": "H800 PCIe", "sm_count": 114, "clock_hz": 1.755e9, "memory_peak_bytes_per_s": 2039e9,
+        "l2_bytes": 50e6, "l1_shared_bytes_per_sm": 262144,
+        "l1_latency_cycles": 32.0, "shared_latency_cycles": 29.0, "l2_latency_cycles": [264.5, 502], "memory_latency_cycles": 656,
+        "l1_bytes_per_cycle_per_sm": 124.1, "shared_bytes_per_cycle_per_sm": 127.9, "l2_bytes_per_cycle": 3942.4,
+        "memory_bytes_per_s": 1407.2e9,
+        "tma_extra_latency_cycles": 170, "dsm_latency_cycles": {"local": 33, "inter_sm": 181, "via_global": 1110},
+        "tensor_flops_per_s": {"wgmma fp16 m64n256k16": 729.3e12, "wgmma tf32 m64n256k8": 364.4e12, "wgmma fp8 m64n256k32": 1448.4e12,
+                               "mma fp16 m16n8k16": 494.4e12, "mma tf32 m16n8k8": 246.4e12},
+        "wgmma_latency_cycles": {"n256": 128.0, "n128": 64.0, "n64": 32.0},
+        "power_wall": "under load with random inputs the SM clock falls from 1755 MHz to 1200-1300 MHz"
+      },
+      "jarmusch2025dissect": {
+        "device": "H100 PCIe", "l1_bytes_per_sm": 262144, "shared_static_bytes": 49152, "shared_dynamic_max_bytes": 227e3,
+        "l2_bytes": 50e6, "l2_partitions": 2, "register_file_bytes_per_sm": 262144,
+        "l1_latency_cycles": [30, 40], "l2_latency_cycles": [273, 508], "memory_latency_cycles": 658.7,
+        "memory_read_bytes_per_s": 15.8e12, "memory_write_bytes_per_s": 2.2e12,
+        "fma_latency_cycles": {"fp32": 4, "fp64": 8.04},
+        "note": "the published read bandwidth exceeds the HBM interface rate and is not used"
+      }
+    },
+    "RTX 5080": {
+      "architecture": "Blackwell",
+      "jarmusch2025dissect": {
+        "l1_bytes_per_sm": 131072, "shared_dynamic_max_bytes": 99e3, "l2_bytes": 65e6, "l2_partitions": 1,
+        "l1_latency_cycles": [30, 40], "l2_latency_cycles": 358, "memory_latency_cycles": 876.7,
+        "memory_read_bytes_per_s": 8.2e12, "memory_write_bytes_per_s": 1.6e12,
+        "fma_latency_cycles": {"fp32": 4, "fp64": 63.57}, "fp64_units_per_sm": 2
+      }
+    },
+    "A100": {
+      "architecture": "Ampere",
+      "luo2025": {
+        "sm_count": 108, "clock_hz": 1.41e9, "memory_peak_bytes_per_s": 1555e9, "l2_bytes": 40e6, "l1_shared_bytes_per_sm": 196608,
+        "l1_latency_cycles": 33.0, "shared_latency_cycles": 29.0, "l2_latency_cycles": [202.8, 408], "memory_latency_cycles": 566,
+        "l1_bytes_per_cycle_per_sm": 106.8, "shared_bytes_per_cycle_per_sm": 126.2, "l2_bytes_per_cycle": 2007.9,
+        "memory_bytes_per_s": 1861.5e9,
+        "tensor_flops_per_s": {"mma fp16 m16n8k16": 310.6e12, "mma tf32 m16n8k8": 151.5e12}
+      }
+    },
+    "RTX 4090": {
+      "architecture": "Ada Lovelace",
+      "luo2025": {
+        "sm_count": 128, "clock_hz": 2.52e9, "memory_peak_bytes_per_s": 1008e9, "l2_bytes": 72e6, "l1_shared_bytes_per_sm": 131072,
+        "l1_latency_cycles": 32.0, "shared_latency_cycles": 30.1, "l2_latency_cycles": 273.0, "memory_latency_cycles": 571,
+        "memory_bytes_per_s": 929.8e9,
+        "tensor_flops_per_s": {"mma fp16 m16n8k16": 357.6e12, "mma tf32 m16n8k8": 89.0e12}
+      }
+    },
+    "V100": {
+      "architecture": "Volta",
+      "jia2018": {
+        "l1_latency_cycles": 28, "l2_bytes": 6291456, "l2_line_bytes": 64, "l2_ways": 16, "l2_latency_cycles": 193,
+        "memory_latency_cycles": {"tlb_hit": 375, "tlb_miss": 1029}, "l2_bytes_per_s": 2155e9
+      }
+    },
+    "MI300A": {
+      "architecture": "CDNA3",
+      "jarmusch2026model": {
+        "cu_count": 304, "wavefront_size": 64, "max_wavefronts_per_cu": 32, "memory_peak_bytes_per_s": 5.3e12,
+        "llc_bytes": 256e6, "llc_bytes_per_s": 17.2e12, "l1_latency_cycles": 5, "l2_latency_cycles": 50,
+        "llc_latency_cycles": 150, "memory_latency_cycles": 400, "mfma_flops_per_s": {"fp8": 1307e12, "fp64": 61.3e12}
+      }
+    }
+  }
+}
