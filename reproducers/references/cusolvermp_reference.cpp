@@ -145,7 +145,7 @@ int main(int argc, char **argv) {
         CU(cudaSetDevice(device));
         int m = std::stoi(argv[2]), n = std::stoi(argv[3]), b = std::stoi(argv[4]),
             reps = std::stoi(argv[5]);
-        if (m < 0 || n < 0 || b < 1 || reps < 1 || p > 4)
+        if (m < 0 || n < 0 || b < 1 || reps < 1)
             throw std::runtime_error("descriptor");
         ncclUniqueId id;
         if (rank == 0)

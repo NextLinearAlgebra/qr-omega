@@ -1,9 +1,10 @@
 #pragma once
-// Block and cluster carriers of D = V Z written directly against the hardware, after KAMI (Wang et
-// al., SC'25): tensor cores or FMAs compute, registers hold the output block, and shared memory is
-// only the staging ring of the operands. Both cut the contraction in two halves: the two warp
-// layers of a block (FP64) or the two blocks of a cluster (FP32) each own one half, and the owner
-// adds the two partials and commits X -= D once.
+// Block carriers of D = V Z written directly against the hardware, after KAMI (Wang et al., SC'25):
+// tensor cores or FMAs compute, registers hold the output block, and shared memory is only the
+// staging ring of the operands. The warps of a block form the carrier (2, 2, 2): a 2 x 2 grid over
+// the output tile in each of two layers, and the two layers own the two halves of the contraction.
+// The owner of each part of the tile adds the two partials and commits X -= D once.
+#include "carrier.hpp"
 #include "kernels.cuh"
 namespace tqr {
 namespace kami {
@@ -233,12 +234,17 @@ __global__ void __launch_bounds__(Cfg::Threads, 1)
 // Column tiles per raster group of the D carriers.
 inline constexpr int raster_group = 16;
 using DN128x64K16 = NCfg<128, 64, 16, 2, 2, 3>;
+template <class Cfg> Carrier dnp16_carrier(int rows, int q) {
+    return Carrier{}
+        .set(GpuLevel, ceildiv(rows, Cfg::BM), ceildiv(q, Cfg::BN), 1)
+        .set(BlockLevel, Cfg::PI, Cfg::PJ, Cfg::C);
+}
 template <class Cfg>
-void launch_dnp16(const double *v, int ldv, const double *zt, int ldz, double *x, int ldx, int rows,
-                  int h, int q, cudaStream_t st) {
+Carrier launch_dnp16(const double *v, int ldv, const double *zt, int ldz, double *x, int ldx,
+                     int rows, int h, int q, cudaStream_t st) {
     static_assert(Cfg::C == 2 && Cfg::BK % 16 == 0, "two contraction peers with k16 tiles");
     if (!rows || !h || !q)
-        return;
+        return dnp16_carrier<Cfg>(rows, q);
     if (h % 32)
         throw std::runtime_error("the FP64 D carrier needs two halves of whole k-tiles");
     reserve_shared_memory(kami_dnp16_kernel<Cfg>, Cfg::Smem, true);
@@ -246,6 +252,7 @@ void launch_dnp16(const double *v, int ldv, const double *zt, int ldz, double *x
     kami_dnp16_kernel<Cfg><<<dim3(nx, ny), Cfg::Threads, Cfg::Smem, st>>>(
         v, ldv, zt, ldz, x, ldx, rows, h, q, std::min(raster_group, nx));
     CU(cudaGetLastError());
+    return dnp16_carrier<Cfg>(rows, q);
 }
 // The FP64 carrier needs 16-byte copies of every column start and a nonempty half per layer.
 inline bool d_admits(const double *v, int ldv, const double *zt, int ldz, const double *x, int ldx,
@@ -254,87 +261,63 @@ inline bool d_admits(const double *v, int ldv, const double *zt, int ldz, const 
     return h > 8 && !(bases & 15) && !((ldv | ldz | ldx) & 1);
 }
 
-__device__ __forceinline__ uint32_t cluster_rank() {
-    uint32_t r;
-    asm volatile("mov.u32 %0, %%cluster_ctarank;\n" : "=r"(r));
-    return r;
-}
-__device__ __forceinline__ uint32_t map_peer(uint32_t saddr, uint32_t rank) {
-    uint32_t r;
-    asm volatile("mapa.shared::cluster.u32 %0, %1, %2;\n" : "=r"(r) : "r"(saddr), "r"(rank));
-    return r;
-}
-__device__ __forceinline__ void mbar_init(uint32_t bar, uint32_t count) {
-    asm volatile("mbarrier.init.shared::cta.b64 [%0], %1;\n" ::"r"(bar), "r"(count) : "memory");
-}
-__device__ __forceinline__ void mbar_expect_tx(uint32_t bar, uint32_t bytes) {
-    asm volatile("mbarrier.arrive.expect_tx.shared::cta.b64 _, [%0], %1;\n" ::"r"(bar), "r"(bytes)
-                 : "memory");
-}
-__device__ __forceinline__ void mbar_wait_cluster(uint32_t bar, uint32_t parity) {
-    asm volatile(
-        "{\n .reg .pred P;\n W: mbarrier.try_wait.parity.acquire.cluster.shared::cta.b64 P, [%0], %1;\n @!P bra W;\n}\n" ::
-            "r"(bar),
-        "r"(parity)
-        : "memory");
-}
 __device__ __forceinline__ void cp16a(uint32_t dst, const void *src, int src_bytes) {
     asm volatile("cp.async.cg.shared.global [%0], [%1], 16, %2;\n" ::"r"(dst), "l"(src),
                  "r"(src_bytes)
                  : "memory");
 }
-// Fragments are double-buffered in registers (asm-ordered loads of step k+1 between the FFMAs of
-// step k); an S-stage cp.async ring of BK reflectors; the owned half of X is staged by cp.async.
+// FP32 on CUDA cores: 256 threads, the two layers of four warps own the contraction halves of a
+// 128 x 128 tile. Fragments are double-buffered in registers (asm-ordered loads of step k+1 between
+// the FFMAs of step k); every layer has an S-stage cp.async ring of BK reflectors and stages the
+// half of X it commits.
 template <int S_, int BK_ = 8> struct FCfg {
-    static constexpr int BM = 128, BN = 128, BK = BK_, S = S_, C = 2, HN = 64, Threads = 128;
+    static constexpr int BM = 128, BN = 128, BK = BK_, S = S_, C = 2, HN = 64, LayerThreads = 128,
+                         Threads = C * LayerThreads;
     static_assert(BK % 4 == 0 && BK >= 8, "copy plan: 4 k-rows per pass");
     static constexpr int AElems = BK * BM, BElems = BK * BN, StageElems = AElems + BElems,
                          RingElems = S * StageElems;
     static constexpr int XLD = BM + 4; // X staging [col][row], padded against bank conflicts
     static constexpr int XElems = HN * XLD;
-    static constexpr int RecvElems = 128 * 128 / 2; // the peer's half: 64 lanes-slots x 128
-    static constexpr uint32_t RecvBytes = uint32_t(RecvElems) * 4u;
-    static constexpr size_t Smem = size_t(RingElems + XElems + RecvElems) * 4 + 16;
+    static constexpr int RecvElems = 128 * 128 / 2; // the other layer's half: 64 lane-slots x 128
+    static constexpr int LayerElems = RingElems + XElems + RecvElems;
+    static constexpr size_t Smem = size_t(C) * LayerElems * 4;
 };
 __device__ __forceinline__ void ldsf4(float (&v)[4], uint32_t a) {
     asm volatile("ld.shared.v4.f32 {%0,%1,%2,%3}, [%4];\n"
                  : "=f"(v[0]), "=f"(v[1]), "=f"(v[2]), "=f"(v[3])
                  : "r"(a));
 }
-__device__ __forceinline__ void st_async_f4(uint32_t raddr, const float (&v)[4], uint32_t rbar) {
-    asm volatile(
-        "st.async.shared::cluster.mbarrier::complete_tx::bytes.v4.f32 [%0], {%1,%2,%3,%4}, [%5];\n" ::
-            "r"(raddr),
-        "f"(v[0]), "f"(v[1]), "f"(v[2]), "f"(v[3]), "r"(rbar)
-        : "memory");
+__device__ __forceinline__ void stsf4(uint32_t a, const float (&v)[4]) {
+    asm volatile("st.shared.v4.f32 [%0], {%1,%2,%3,%4};\n" ::"r"(a), "f"(v[0]), "f"(v[1]),
+                 "f"(v[2]), "f"(v[3])
+                 : "memory");
 }
 template <class Cfg>
-__global__ void __launch_bounds__(128, 2)
-    simt_dcl_kernel(const float *__restrict__ V, int ldv, const float *__restrict__ Zt, int ldz,
-                    float *X, int ldx, int rows, int h, int q, int raster) {
+__global__ void __launch_bounds__(256, 1)
+    simt_d2_kernel(const float *__restrict__ V, int ldv, const float *__restrict__ Zt, int ldz,
+                   float *X, int ldx, int rows, int h, int q, int raster) {
     constexpr int BM = Cfg::BM, BN = Cfg::BN, BK = Cfg::BK, S = Cfg::S, HN = Cfg::HN,
-                  XLD = Cfg::XLD;
+                  XLD = Cfg::XLD, LT = Cfg::LayerThreads;
     constexpr uint32_t StageB = uint32_t(Cfg::StageElems) * 4u, ABytes = uint32_t(Cfg::AElems) * 4u;
     extern __shared__ __align__(128) float sf_smem[];
-    const int tid = threadIdx.x, warp = tid >> 5, lane = tid & 31, wm = warp >> 1, wn = warp & 1,
-              r = lane >> 3, sc = lane & 7;
-    const int z = int(cluster_rank());
+    // Layer z owns the contraction half z and commits the columns [64 z, 64 z + 64) of the tile.
+    const int z = threadIdx.x / LT, tid = threadIdx.x % LT, warp = tid >> 5, lane = tid & 31,
+              wm = warp >> 1, wn = warp & 1, r = lane >> 3, sc = lane & 7;
+    // Named barrier 1 + z joins the 128 threads of layer z; barrier 0 the whole block.
+    auto layer_sync = [&] { bar_sync(1 + z, LT); };
     int tcol, trow;
-    raster_tile((blockIdx.x >> 1) + (gridDim.x >> 1) * blockIdx.y, gridDim.x >> 1, gridDim.y,
-                raster, tcol, trow);
+    raster_tile(blockIdx.x + gridDim.x * blockIdx.y, gridDim.x, gridDim.y, raster, tcol, trow);
     const int n0 = tcol * BN, m0 = trow * BM;
-    const uint32_t sbase = smem_u32(sf_smem);
+    const uint32_t layer_base = smem_u32(sf_smem),
+                   sbase = layer_base + uint32_t(z * Cfg::LayerElems) * 4u;
     const uint32_t xs = sbase + uint32_t(Cfg::RingElems) * 4u;
-    const uint32_t rbuf = xs + uint32_t(Cfg::XElems) * 4u, mbar = rbuf + Cfg::RecvBytes;
-    if (tid == 0) {
-        mbar_init(mbar, 1);
-        asm volatile("fence.mbarrier_init.release.cluster;\n" ::: "memory");
-        mbar_expect_tx(mbar, Cfg::RecvBytes);
-    }
-    asm volatile("barrier.cluster.arrive.relaxed.aligned;\n" ::: "memory");
+    // The partials this layer receives from the other one.
+    const uint32_t rbuf = xs + uint32_t(Cfg::XElems) * 4u;
+    const uint32_t peer_rbuf =
+        layer_base + uint32_t((z ^ 1) * Cfg::LayerElems + Cfg::RingElems + Cfg::XElems) * 4u;
     const int nk = (h + 2 * BK - 1) / (2 * BK);
     const int kb = min(h, z * nk * BK), ke = min(h, (z + 1) * nk * BK);
-    const int nkt = (ke - kb) / BK; // admission: h % 16 == 0
+    const int nkt = (ke - kb) / BK; // admission: h % (2 BK) == 0
     const int cu = tid & 31, ck = tid >> 5;
     const int avb = min(4, max(0, rows - (m0 + 4 * cu))) * 4,
               bvb = min(4, max(0, q - (n0 + 4 * cu))) * 4;
@@ -363,10 +346,10 @@ __global__ void __launch_bounds__(128, 2)
         cp_commit();
     }
     cp_wait<S - 2>();
-    __syncthreads();
+    layer_sync();
     if (S - 1 < nkt)
         load_tile(sbase + uint32_t(S - 1) * StageB);
-    { // the 64 columns of X this block commits -> smem [col][row]
+    { // the 64 columns of X this layer commits -> smem [col][row]
         const int nh = n0 + z * HN;
         const int xr = 4 * (tid & 31), xvb = min(4, max(0, rows - (m0 + xr))) * 4;
         const float *px = X + (xvb ? size_t(m0 + xr) : 0) + size_t(nh) * ldx;
@@ -429,7 +412,7 @@ __global__ void __launch_bounds__(128, 2)
                 ldfrag(fa[(k + 1) & 1], fb[(k + 1) & 1], cur, k + 1);
             else if (kt + 1 < nkt) {
                 cp_wait<S - 2>();
-                __syncthreads(); // tile kt+1 landed; stage cur fully read
+                layer_sync(); // tile kt+1 landed; stage cur fully read
                 if (kt + S < nkt)
                     load_tile(cur);
                 cp_commit();
@@ -441,26 +424,24 @@ __global__ void __launch_bounds__(128, 2)
         nxt = nxt + StageB == ring_end ? sbase : nxt + StageB;
     }
     cp_wait<0>();
-    __syncthreads(); // X staged
-    const bool full = (m0 + BM <= rows) && (n0 + BN <= q);
     // Thread element (i, j): row 64 wm + 4 r + 16 (i / 4) + i % 4, column 64 wn + 4 sc + 32 (j / 4) +
-    // j % 4. The block that does not own column half wn sends its partials to the peer.
-    asm volatile("barrier.cluster.wait.aligned;\n" ::: "memory");
-    // recv layout: slot (c, j) of lane-slot L = 32 wm + lane: float4 at ((c*8 + j)*64 + L)*4
-    // floats (conflict-free)
+    // j % 4. The warps whose column half belongs to the other layer park their partials in its
+    // receive buffer: slot (c, j) of lane-slot L = 32 wm + lane is the float4 at ((c*8 + j)*64 +
+    // L)*4 floats (conflict-free).
     const int L = 32 * wm + lane;
     if (wn != z) {
-        const uint32_t rb = map_peer(rbuf, uint32_t(z ^ 1)), rbar = map_peer(mbar, uint32_t(z ^ 1));
 #pragma unroll
         for (int c = 0; c < 4; ++c)
 #pragma unroll
             for (int j = 0; j < 8; ++j) {
-                float v[4] = {acc[4 * c][j], acc[4 * c + 1][j], acc[4 * c + 2][j],
-                              acc[4 * c + 3][j]};
-                st_async_f4(rb + uint32_t(((c * 8 + j) * 64 + L) * 4) * 4u, v, rbar);
+                const float v[4] = {acc[4 * c][j], acc[4 * c + 1][j], acc[4 * c + 2][j],
+                                    acc[4 * c + 3][j]};
+                stsf4(peer_rbuf + uint32_t(((c * 8 + j) * 64 + L) * 4) * 4u, v);
             }
-    } else {
-        mbar_wait_cluster(mbar, 0);
+    }
+    __syncthreads(); // partials parked, X staged
+    if (wn == z) {
+        const bool full = (m0 + BM <= rows) && (n0 + BN <= q);
 #pragma unroll
         for (int j = 0; j < 8; ++j) { // stream: peer float4 + X float4 per (c, j)
             const int cl = 64 * wn + 4 * sc + 32 * (j >> 2) + (j & 3) - z * HN,
@@ -495,23 +476,29 @@ using SF2K16 = FCfg<2, 16>;
 // The FP32 carrier needs whole k-tiles in each half, 16-byte copies of every column start, and
 // 32-bit offsets for a k-tile of operand rows.
 template <class Cfg>
-bool simt_dcl_admits(const float *v, int ldv, const float *zt, int ldz, const float *x, int ldx,
-                     int h) {
+bool simt_d2_admits(const float *v, int ldv, const float *zt, int ldz, const float *x, int ldx,
+                    int h) {
     const uintptr_t bases = uintptr_t(v) | uintptr_t(zt) | uintptr_t(x);
     return h >= 2 * Cfg::BK && h % (2 * Cfg::BK) == 0 && !(bases & 15) &&
            !((ldv | ldz | ldx) & 3) && (long long)Cfg::BK * ldv * 4 < (1LL << 31) &&
            (long long)Cfg::BK * ldz * 4 < (1LL << 31);
 }
+template <class Cfg> Carrier simt_d2_carrier(int rows, int q) {
+    return Carrier{}
+        .set(GpuLevel, ceildiv(rows, Cfg::BM), ceildiv(q, Cfg::BN), 1)
+        .set(BlockLevel, 2, 2, Cfg::C);
+}
 template <class Cfg>
-void launch_simt_dcl(const float *v, int ldv, const float *zt, int ldz, float *x, int ldx, int rows,
-                     int h, int q, cudaStream_t st) {
+Carrier launch_simt_d2(const float *v, int ldv, const float *zt, int ldz, float *x, int ldx,
+                       int rows, int h, int q, cudaStream_t st) {
     if (!rows || !q)
-        return;
-    reserve_shared_memory(simt_dcl_kernel<Cfg>, Cfg::Smem, true);
+        return simt_d2_carrier<Cfg>(rows, q);
+    reserve_shared_memory(simt_d2_kernel<Cfg>, Cfg::Smem, true);
     const int nx = ceildiv(q, Cfg::BN), ny = ceildiv(rows, Cfg::BM);
-    launch_clustered(simt_dcl_kernel<Cfg>, dim3(2 * nx, ny), dim3(128), Cfg::Smem, st,
-                     dim3(2, 1, 1), v, ldv, zt, ldz, x, ldx, rows, h, q,
-                     std::min(raster_group, nx));
+    simt_d2_kernel<Cfg><<<dim3(nx, ny), Cfg::Threads, Cfg::Smem, st>>>(
+        v, ldv, zt, ldz, x, ldx, rows, h, q, std::min(raster_group, nx));
+    CU(cudaGetLastError());
+    return simt_d2_carrier<Cfg>(rows, q);
 }
 } // namespace kami
 } // namespace tqr

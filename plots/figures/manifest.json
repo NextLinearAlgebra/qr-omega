@@ -1,12 +1,14 @@
 {
-  "input_sha256": "b582c14d35540fa3e7ce25b609bff50a5126200a9dd4733f578fefbd9db47fcf",
-  "rows": 317,
+  "input_sha256": "75cbfb853b6bec798c5e3a5ac99cbcd38f130c0cf08c603156912af6fbe1ba5a",
+  "rows": 383,
   "figures": [
     "multi4-acc.pdf",
     "multi4-perf.pdf",
+    "multi8-acc.pdf",
+    "multi8-perf.pdf",
     "scaling.pdf",
     "single-acc.pdf",
     "single-perf.pdf"
   ],
-  "headline_rows": 19
+  "headline_rows": 40
 }

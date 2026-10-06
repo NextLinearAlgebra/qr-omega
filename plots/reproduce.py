@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Regenerate the figures of the paper and the numbers it quotes from plots/data/paper.csv (no GPU needed)."""
+"""Regenerate the figures of the paper and the numbers it quotes from plots/data (no GPU needed)."""
 
 import argparse
 import csv
@@ -33,12 +33,7 @@ def checked_rows(path):
         expected = (4 / 3 if row["kind"] == "qr" else 2) * row["n"] ** 3 / row["time_s"] / 1e12
         if not math.isclose(row["tflops"], expected, rel_tol=2e-4):
             raise ValueError(f"Inconsistent throughput: {key}")
-        if (
-            row["kind"] == "qr"
-            and row["library"] == "TQR"
-            and row["gpus"] in (1, 4)
-            and row["validation"] != "passed"
-        ):
+        if row["kind"] == "qr" and row["library"] == "TQR" and row["validation"] != "passed":
             raise ValueError(f"QR-Omega measurement without numerical checks: {key}")
     return rows
 
@@ -46,7 +41,14 @@ def checked_rows(path):
 def headline(best, out):
     """QR-Omega against the fastest reference at the sizes the paper quotes."""
     table = []
-    for gpus, sizes in ((1, (65536, 131072)), (4, (131072, 229376, 327680))):
+    sizes_by_count = (
+        (1, (65536, 131072)),
+        (2, (229376,)),
+        (3, (229376,)),
+        (4, (131072, 229376, 327680)),
+        (8, (131072, 229376, 294912, 327680)),
+    )
+    for gpus, sizes in sizes_by_count:
         for mode in mp.MODES:
             for n in sizes:
                 own = mp.lookup(best, gpus, mode, n)
@@ -90,6 +92,8 @@ def main():
     pf.acc_figure(renderer, 1, out, "single-acc")
     pf.perf_figure(renderer, 4, out, "multi4-perf")
     pf.acc_figure(renderer, 4, out, "multi4-acc")
+    pf.perf_figure(renderer, 8, out, "multi8-perf")
+    pf.acc_figure(renderer, 8, out, "multi8-acc")
     pf.scaling_figure(renderer, out, "scaling")
     table = headline(best, out)
     manifest = {

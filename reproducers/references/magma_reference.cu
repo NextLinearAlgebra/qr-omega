@@ -187,7 +187,12 @@ template <class T> int bench(int m, int n, int p, int reps) {
     json validation = "info checked; independent numerical reference validation still required";
     bool numerical_pass = true;
 #ifdef TQR_REFERENCE_VALIDATE
-    if (info == 0) {
+    // Timing campaign: TQR_REFERENCE_GEQRF_ONLY skips the validation, as in the other adapters.
+    if (std::getenv("TQR_REFERENCE_GEQRF_ONLY"))
+        validation = {{"performed", false},
+                      {"pass", nullptr},
+                      {"scope", "timing-only run (TQR_REFERENCE_GEQRF_ONLY)"}};
+    else if (info == 0) {
         try {
             validation = validate_magma_factors(m, n, p, block, ld, a, tau);
             numerical_pass = validation.value("pass", false);
@@ -248,7 +253,7 @@ int main(int argc, char **argv) {
             throw std::runtime_error("usage: magma_reference fp32|fp64 m n gpus reps");
         int m = std::stoi(argv[2]), n = std::stoi(argv[3]), p = std::stoi(argv[4]),
             reps = std::stoi(argv[5]);
-        if (m < 0 || n < 0 || p < 1 || p > 4 || reps < 1)
+        if (m < 0 || n < 0 || p < 1 || p > MagmaMaxGPUs || reps < 1)
             throw std::runtime_error("descriptor");
         magma_init();
         int status = std::string(argv[1]) == "fp32" ? bench<float>(m, n, p, reps)

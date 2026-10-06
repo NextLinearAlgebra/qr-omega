@@ -3,6 +3,7 @@ project(qr_omega VERSION 0.1.0 LANGUAGES CXX CUDA)
 
 option(QR_OMEGA_BUILD_MULTI_GPU "Build the single-node MPI/NCCL/NVSHMEM driver" OFF)
 option(QR_OMEGA_BUILD_REFERENCES "Build the cuSOLVER, MAGMA, SLATE and cuSOLVERMp benchmark adapters" OFF)
+option(QR_OMEGA_BUILD_GPU_TESTS "Build and register the Hopper panel correctness tests" OFF)
 set(CUTLASS_ROOT "" CACHE PATH "CUTLASS c900acd source directory")
 set(JSON_INCLUDE_DIR "" CACHE PATH "Directory containing nlohmann json.hpp 3.12.0")
 set(NCCL_ROOT "" CACHE PATH "Installed low-latency NCCL (commit 5357eff) prefix")
@@ -42,8 +43,8 @@ if(NOT EXISTS "${JSON_INCLUDE_DIR}/json.hpp")
   message(FATAL_ERROR "JSON_INCLUDE_DIR must contain json.hpp")
 endif()
 
-function(qr_omega_driver target)
-  add_executable(${target} benchmarks/qr_omega.cu)
+function(qr_omega_cuda_executable target source)
+  add_executable(${target} ${source})
   set_target_properties(${target} PROPERTIES
     CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES
     CUDA_STANDARD 17 CUDA_STANDARD_REQUIRED YES
@@ -57,37 +58,36 @@ function(qr_omega_driver target)
     --expt-relaxed-constexpr;--extended-lambda;-lineinfo;
     --ftz=false;--prec-div=true;--prec-sqrt=true;-Xcompiler=-pthread>)
   target_link_libraries(${target} PRIVATE CUDA::cublas CUDA::cublasLt CUDA::cuda_driver Threads::Threads)
-  install(TARGETS ${target} RUNTIME DESTINATION bin)
 endfunction()
 
-qr_omega_driver(qr_omega_single)
+qr_omega_cuda_executable(qr_omega_single benchmarks/qr_omega.cu)
+install(TARGETS qr_omega_single RUNTIME DESTINATION bin)
 if(QR_OMEGA_BUILD_MULTI_GPU)
   find_package(MPI REQUIRED COMPONENTS CXX)
   find_path(QR_NCCL_INCLUDE nccl_device/ll_buffer.h HINTS "${NCCL_ROOT}/include" REQUIRED)
   find_library(QR_NCCL_LIBRARY nccl HINTS "${NCCL_ROOT}/lib" "${NCCL_ROOT}/lib64" REQUIRED NO_DEFAULT_PATH)
   find_path(QR_NVSHMEM_INCLUDE nvshmem_host.h HINTS "${NVSHMEM_ROOT}/include" REQUIRED)
   find_library(QR_NVSHMEM_LIBRARY nvshmem_host HINTS "${NVSHMEM_ROOT}/lib" "${NVSHMEM_ROOT}/lib64" REQUIRED)
-  qr_omega_driver(qr_omega_multi)
+  qr_omega_cuda_executable(qr_omega_multi benchmarks/qr_omega.cu)
   target_compile_definitions(qr_omega_multi PRIVATE TQR_MULTI=1)
   target_include_directories(qr_omega_multi SYSTEM PRIVATE "${QR_NCCL_INCLUDE}" "${QR_NVSHMEM_INCLUDE}")
   target_link_libraries(qr_omega_multi PRIVATE MPI::MPI_CXX "${QR_NCCL_LIBRARY}" "${QR_NVSHMEM_LIBRARY}")
+  qr_omega_cuda_executable(qr_omega_transport_bench benchmarks/transport.cu)
+  target_compile_definitions(qr_omega_transport_bench PRIVATE TQR_MULTI=1)
+  target_include_directories(qr_omega_transport_bench SYSTEM PRIVATE "${QR_NCCL_INCLUDE}" "${QR_NVSHMEM_INCLUDE}")
+  target_link_libraries(qr_omega_transport_bench PRIVATE MPI::MPI_CXX "${QR_NCCL_LIBRARY}" "${QR_NVSHMEM_LIBRARY}")
+  if(QR_OMEGA_BUILD_GPU_TESTS)
+    qr_omega_cuda_executable(qr_omega_transport_tests tests/transport_gpu.cu)
+    target_compile_definitions(qr_omega_transport_tests PRIVATE TQR_MULTI=1)
+    target_include_directories(qr_omega_transport_tests SYSTEM PRIVATE "${QR_NCCL_INCLUDE}" "${QR_NVSHMEM_INCLUDE}")
+    target_link_libraries(qr_omega_transport_tests PRIVATE MPI::MPI_CXX "${QR_NCCL_LIBRARY}" "${QR_NVSHMEM_LIBRARY}")
+  endif()
+  install(TARGETS qr_omega_multi qr_omega_transport_bench RUNTIME DESTINATION bin)
 endif()
 
 if(QR_OMEGA_BUILD_REFERENCES)
   add_subdirectory(reproducers/references)
 endif()
-
-# The machine probe uses portable CUDA and cuBLAS only, so it is built for the GPUs of the build
-# host (or the list in MACHINE_PROBE_ARCHITECTURES), not only for Hopper.
-set(MACHINE_PROBE_ARCHITECTURES "native" CACHE STRING "CUDA architectures of machine_probe")
-add_executable(machine_probe machine/probe/machine_probe.cu)
-set_target_properties(machine_probe PROPERTIES
-  CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES CUDA_STANDARD 17 CUDA_STANDARD_REQUIRED YES
-  CUDA_ARCHITECTURES "${MACHINE_PROBE_ARCHITECTURES}" RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
-target_include_directories(machine_probe PRIVATE "${JSON_INCLUDE_DIR}")
-target_compile_options(machine_probe PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:-O3>)
-target_link_libraries(machine_probe PRIVATE CUDA::cublas Threads::Threads)
-install(TARGETS machine_probe RUNTIME DESTINATION bin)
 
 include(CTest)
 if(BUILD_TESTING)
@@ -96,4 +96,50 @@ if(BUILD_TESTING)
     COMMAND "${Python3_EXECUTABLE}" -m unittest discover -s tests -v)
   set_tests_properties(reproduction_contract PROPERTIES
     WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}" LABELS "cpu")
+  if(QR_OMEGA_BUILD_GPU_TESTS)
+    qr_omega_cuda_executable(qr_omega_domain_tests tests/domain_panel.cu)
+    add_test(NAME domain_panel COMMAND qr_omega_domain_tests)
+    set_tests_properties(domain_panel PROPERTIES LABELS "gpu" TIMEOUT 180)
+    qr_omega_cuda_executable(qr_omega_register_tests tests/register_panel.cu)
+    add_test(NAME register_panel COMMAND qr_omega_register_tests)
+    set_tests_properties(register_panel PROPERTIES LABELS "gpu" TIMEOUT 180)
+    qr_omega_cuda_executable(qr_omega_tree_update_tests tests/tree_update.cu)
+    add_test(NAME tree_update COMMAND qr_omega_tree_update_tests)
+    set_tests_properties(tree_update PROPERTIES LABELS "gpu" TIMEOUT 180)
+    qr_omega_cuda_executable(qr_omega_norm_tests tests/norm_gpu.cu)
+    add_test(NAME scaled_norm COMMAND qr_omega_norm_tests)
+    set_tests_properties(scaled_norm PROPERTIES LABELS "gpu" TIMEOUT 180)
+    add_test(NAME hierarchy_updates
+      COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/hierarchy_gpu.py"
+              "$<TARGET_FILE:qr_omega_single>")
+    set_tests_properties(hierarchy_updates PROPERTIES LABELS "gpu" TIMEOUT 600)
+    add_test(NAME hierarchy_resident
+      COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/hierarchy_gpu.py"
+              "$<TARGET_FILE:qr_omega_single>" --tree-update resident)
+    set_tests_properties(hierarchy_resident PROPERTIES LABELS "gpu" TIMEOUT 180)
+    add_test(NAME hierarchy_reconstructed
+      COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/hierarchy_gpu.py"
+              "$<TARGET_FILE:qr_omega_single>" --panel-format wy)
+    set_tests_properties(hierarchy_reconstructed PROPERTIES LABELS "gpu" TIMEOUT 600)
+    add_test(NAME hierarchy_aggregated
+      COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/hierarchy_gpu.py"
+              "$<TARGET_FILE:qr_omega_single>" --panel-format wy --aggregate 4)
+    set_tests_properties(hierarchy_aggregated PROPERTIES LABELS "gpu" TIMEOUT 600)
+    add_test(NAME hierarchy_z_replicated
+      COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/hierarchy_gpu.py"
+              "$<TARGET_FILE:qr_omega_single>" --panel-format wy --aggregate 4 --zc 8)
+    set_tests_properties(hierarchy_z_replicated PROPERTIES LABELS "gpu" TIMEOUT 600)
+    add_test(NAME hierarchy_tall_reconstructed
+      COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/hierarchy_gpu.py"
+              "$<TARGET_FILE:qr_omega_single>" --panel-format wy --aggregate 2 --tree-update resident --tall)
+    set_tests_properties(hierarchy_tall_reconstructed PROPERTIES LABELS "gpu" TIMEOUT 600)
+    add_test(NAME conditioning
+      COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/condition_gpu.py"
+              "$<TARGET_FILE:qr_omega_single>")
+    set_tests_properties(conditioning PROPERTIES LABELS "gpu" TIMEOUT 900)
+    add_test(NAME tree_tail
+      COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/tail_gpu.py"
+              "$<TARGET_FILE:qr_omega_single>")
+    set_tests_properties(tree_tail PROPERTIES LABELS "gpu" TIMEOUT 600)
+  endif()
 endif()

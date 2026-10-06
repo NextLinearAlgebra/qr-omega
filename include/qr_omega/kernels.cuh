@@ -93,45 +93,36 @@ template <class T> __global__ void tiled_scale_max(T *scale, const T *other, int
         scale[i] = max(scale[i], other[i]);
 }
 // Divides (or, restoring, multiplies) the columns by their scales. UpperOnly visits only the rows
-// of R (global row <= column; `blk`, `p` and `rank` describe a block-cyclic row distribution),
-// CheckAll also checks the other elements for finiteness.
+// of R (global row <= global column, with the local rows and columns of this GPU distributed by
+// `rows` and `cols` at grid position (r, c)), CheckAll also checks the other elements for
+// finiteness.
 template <class T, bool Restore, bool UpperOnly = false, bool CheckAll = false>
 __global__ void tiled_column_scale(T *a, int nr, int n, int ld, const T *scale, int *status,
-                                   int blk = 0, int p = 1, int rank = 0) {
+                                   Cyclic rows = Cyclic{}, int r = 0, Cyclic cols = Cyclic{},
+                                   int c = 0) {
     bool bad = false;
     const int stride = blockDim.x * gridDim.x, r0 = blockIdx.x * blockDim.x + threadIdx.x;
     for (int col = blockIdx.y; col < n; col += gridDim.y) {
-        T *c = a + size_t(col) * ld;
+        T *v = a + size_t(col) * ld;
         const T s = scale[col];
-        int lim = nr;
-        if constexpr (UpperOnly) {
-            if (!blk)
-                lim = min(col + 1, nr);
-        }
-        for (int row = r0; row < lim; row += stride) {
+        const long long gcol = cols.global(c, col);
+        for (int row = r0; row < nr; row += stride) {
             if constexpr (UpperOnly) {
-                if (blk) {
-                    const long long grow =
-                        (long long)(row / blk) * blk * p + (long long)rank * blk + row % blk;
-                    if (grow > col) {
-                        if constexpr (CheckAll)
-                            bad |= !isfinite(c[row]);
-                        continue;
-                    }
+                if (rows.global(r, row) > gcol) {
+                    if constexpr (CheckAll)
+                        bad |= !isfinite(v[row]);
+                    continue;
                 }
             }
-            const T x = c[row];
+            const T x = v[row];
             T y;
             if constexpr (Restore)
                 y = x * s;
             else
                 y = s ? x / s : T(0);
-            c[row] = y;
+            v[row] = y;
             bad |= !isfinite(y);
         }
-        if constexpr (CheckAll)
-            for (int row = lim + r0; row < nr; row += stride)
-                bad |= !isfinite(c[row]);
     }
     if (__syncthreads_or(bad) && threadIdx.x == 0)
         atomicCAS(status, 0, UNREPRESENTABLE_RESULT);
@@ -163,6 +154,15 @@ __global__ void pack_ge_v(const T *A, int ld, const TilePacket *packet, T *V, in
         V[i] = (r >= p.rows || j >= p.h || r < j) ? T(0)
                : r == j                           ? T(1)
                                                   : A[p.row + r + size_t(p.col + j) * ld];
+    }
+}
+// All the rows of a panel's reflectors on a GPU whose rows lie below the panel's diagonal block.
+template <class T>
+__global__ void pack_rows(const T *A, int ld, const TilePacket *packet, T *V, int leaf, int h) {
+    const TilePacket p = *packet;
+    for (int i = blockIdx.x * blockDim.x + threadIdx.x; i < leaf * h; i += blockDim.x * gridDim.x) {
+        const int r = i % leaf, j = i / leaf;
+        V[i] = r < p.rows ? A[p.row + r + size_t(p.col + j) * ld] : T(0);
     }
 }
 // Enough 128-thread blocks for about four elements per thread, between 32 and 2048.
@@ -210,6 +210,22 @@ template <class T> __global__ void tile_compose_offdiag(T *tri, int b, const T *
         tri[i + size_t(w0 + c) * b] = -acc;
     }
 }
+// Append a reconstructed panel after its row broadcast. Every column peer owns
+// the same group factors, including panels whose matrix columns live elsewhere.
+// The panel's b columns go to group columns [column, column + b), its rows below
+// the first `offset` rows of the group, which are zero.
+template <class T>
+__global__ void append_group_panel(const T *v, int ldv, const T *t, int b, int rows, int offset,
+                                   int column, T *vg, int ldvg, T *diagonal) {
+    const int group_rows = rows + offset;
+    for (size_t e = blockIdx.x * size_t(blockDim.x) + threadIdx.x; e < size_t(group_rows) * b;
+         e += size_t(gridDim.x) * blockDim.x) {
+        const int r = int(e % group_rows), j = int(e / group_rows);
+        vg[r + size_t(column + j) * ldvg] = r < offset ? T(0) : v[r - offset + size_t(j) * ldv];
+    }
+    for (int e = blockIdx.x * blockDim.x + threadIdx.x; e < b * b; e += gridDim.x * blockDim.x)
+        diagonal[e] = t[e];
+}
 // V_g of a group of panels in the reflector order `perm`: panel j is zero above its own diagonal.
 template <class T>
 __global__ void pack_v_block_perm(const T *A, int ld, int row, int col, int rows, int H,
@@ -222,6 +238,16 @@ __global__ void pack_v_block_perm(const T *A, int ld, int row, int col, int rows
         T *dst = V + size_t(p) * ldv;
         for (int r = rc * CH + int(threadIdx.x); r < r1; r += blockDim.x)
             dst[r] = r < j ? T(0) : r == j ? T(1) : src[r];
+    }
+}
+// The Gram blocks G_ij = V_i^T V_j (i < j) of panel j in the natural order of the group, from the
+// Gram Gp (H x H) of its reflectors in the group order: block i at G + i b b, leading dimension b.
+template <class T>
+__global__ void gather_gram_blocks(const T *Gp, int H, const int *inverse, int j, int b, T *G) {
+    for (int e = blockIdx.x * blockDim.x + threadIdx.x; e < j * b * b;
+         e += gridDim.x * blockDim.x) {
+        const int i = e / (b * b), r = e % b, c = (e / b) % b;
+        G[e] = Gp[inverse[i * b + r] + size_t(inverse[j * b + c]) * H];
     }
 }
 // T_g of the group in the same order.
@@ -361,6 +387,22 @@ __global__ void tile_bottom_v(const T *A, int ld, int row, int col, int hb, int 
         V[i] = (r < hb && j < h && r <= j) ? A[row + r + size_t(col + j) * ld] : T(0);
     }
 }
+// The pr blocks of rows x q (leading dimension rows), one after the other, as one (pr rows) x q
+// matrix with leading dimension pr rows.
+template <class T> __global__ void restack(const T *blocks, T *stack, int pr, int rows, int q) {
+    const size_t n = size_t(pr) * rows * q;
+    for (size_t e = blockIdx.x * size_t(blockDim.x) + threadIdx.x; e < n;
+         e += size_t(gridDim.x) * blockDim.x) {
+        const size_t rest = e / rows;
+        const int r = int(e % rows), j = int(rest % q), block = int(rest / q);
+        stack[size_t(block) * rows + r + size_t(j) * pr * rows] = blocks[e];
+    }
+}
+// The b x b block with the identity in its leading h x h part and zeros elsewhere.
+template <class T> __global__ void tile_identity(T *a, int b, int h) {
+    for (int i = blockIdx.x * blockDim.x + threadIdx.x; i < b * b; i += blockDim.x * gridDim.x)
+        a[i] = i % b == i / b && i % b < h ? T(1) : T(0);
+}
 template <class T>
 __global__ void tile_copy_identity(const T *A, int ld, int row, int col, int rows, int q, T *W,
                                    int ldw) {
@@ -385,6 +427,18 @@ __global__ void tile_add_identity_t(T *A, int ld, int row, int col, int rows, in
         A[row + r + size_t(col + j) * ld] -= Zt[j + size_t(r) * ldzt];
     }
 }
+// out = the sum of the c partials of a product, n elements apart in `in`, in a fixed order; `out`
+// may be the first partial.
+template <class T> __global__ void tile_combine_partials(T *out, const T *in, size_t n, int c) {
+    for (size_t i = size_t(blockIdx.x) * blockDim.x + threadIdx.x; i < n;
+         i += size_t(blockDim.x) * gridDim.x) {
+        T s = in[i];
+        for (int z = 1; z < c; ++z)
+            s += in[i + size_t(z) * n];
+        out[i] = s;
+    }
+}
+
 // Entry generator of the inputs and the relative error ||a - b||_F / ||b||_F, scaled by the largest
 // magnitude to stay in range.
 __device__ inline uint64_t mix64(uint64_t x) {
@@ -397,8 +451,10 @@ __device__ inline uint64_t mix64(uint64_t x) {
 template <class T>
 __global__ void relative_error(const T *a, const T *b, int nr, int n, int lda, int ldb, T *out) {
     __shared__ T red[256];
+    const size_t first = size_t(blockIdx.x) * blockDim.x + threadIdx.x;
+    const size_t step = size_t(blockDim.x) * gridDim.x;
     T mx = 0;
-    for (size_t i = threadIdx.x; i < size_t(nr) * n; i += blockDim.x) {
+    for (size_t i = first; i < size_t(nr) * n; i += step) {
         T x = b[i % nr + (i / nr) * ldb];
         mx = max(mx, absval(x));
         mx = max(mx, absval(a[i % nr + (i / nr) * lda]));
@@ -406,7 +462,7 @@ __global__ void relative_error(const T *a, const T *b, int nr, int n, int lda, i
     mx = block_max(mx, red);
     T diff = 0, den = 0;
     if (mx)
-        for (size_t i = threadIdx.x; i < size_t(nr) * n; i += blockDim.x) {
+        for (size_t i = first; i < size_t(nr) * n; i += step) {
             T x = b[i % nr + (i / nr) * ldb];
             T v = a[i % nr + (i / nr) * lda] / mx;
             T y = x / mx;
@@ -416,9 +472,30 @@ __global__ void relative_error(const T *a, const T *b, int nr, int n, int lda, i
     diff = block_sum(diff, red);
     den = block_sum(den, red);
     if (threadIdx.x == 0) {
+        out += 3 * blockIdx.x;
         out[0] = sqrt(diff);
         out[1] = sqrt(den);
         out[2] = mx;
     }
+}
+
+// Combine independently scaled block norms without squaring their original magnitudes.
+template <class T> double relative_error_ratio(const std::vector<T> &partials) {
+    double scale = 0;
+    for (size_t i = 0; i < partials.size(); i += 3) {
+        if (!std::isfinite(partials[i]) || !std::isfinite(partials[i + 1]) ||
+            !std::isfinite(partials[i + 2]))
+            return INFINITY;
+        scale = std::max(scale, double(partials[i + 2]));
+    }
+    if (!scale)
+        return 0;
+    double diff = 0, den = 0;
+    for (size_t i = 0; i < partials.size(); i += 3) {
+        const double weight = double(partials[i + 2]) / scale;
+        diff = std::hypot(diff, double(partials[i]) * weight);
+        den = std::hypot(den, double(partials[i + 1]) * weight);
+    }
+    return den ? diff / den : diff * scale;
 }
 } // namespace tqr

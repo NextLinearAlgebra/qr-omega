@@ -203,34 +203,42 @@ template <class T> struct Buffer {
     }
 };
 
-// One-dimensional block-cyclic distribution of m rows over p GPUs in blocks of `block` rows. With
-// one GPU every row is local and local and global indices coincide.
-struct RowMap {
-    int m = 0, p = 1, block = 1;
-    int owner(int row) const {
-        return (row / block) % p;
+// Block-cyclic distribution of n indices (the rows or the columns of a matrix) over p GPUs in
+// blocks of `block`: block j belongs to GPU (j + first) mod p. With one GPU local and global
+// indices coincide.
+struct Cyclic {
+    int n = 0, p = 1, block = 1, first = 0;
+    // Place of `rank` in the cycle that starts at `first`.
+    __host__ __device__ int position(int rank) const {
+        return (rank - first + p) % p;
     }
-    // Global index of a local row.
-    __host__ __device__ long long global(int rank, int row) const {
-        return (long long)(row / block) * block * p + (long long)rank * block + row % block;
+    int owner(int i) const {
+        return (i / block + first) % p;
     }
-    // Number of rows of `rank` with a global index below `row`.
-    int rows_before(int rank, int row) const {
+    // Global index of a local one.
+    __host__ __device__ long long global(int rank, int local) const {
+        if (p == 1)
+            return local;
+        return (long long)(local / block) * block * p + (long long)position(rank) * block +
+               local % block;
+    }
+    // Number of indices of `rank` below the global index i.
+    int before(int rank, int i) const {
         const int64_t cycle = int64_t(block) * p;
-        return int((row / cycle) * block +
-                   std::clamp<int64_t>(row % cycle - int64_t(rank) * block, 0, block));
+        return int((i / cycle) * block +
+                   std::clamp<int64_t>(i % cycle - int64_t(position(rank)) * block, 0, block));
     }
-    int local_rows(int rank) const {
-        return rows_before(rank, m);
+    int local(int rank) const {
+        return before(rank, n);
     }
 };
 
-// The local rows of an m x n matrix on one GPU, column-major.
+// The local block of an m x n matrix on one GPU: rows x cols entries, column-major.
 template <class T> struct Matrix {
-    int m, n, rows, ld;
+    int m, n, rows, cols, ld;
     Buffer<T> a;
-    Matrix(int m_, int n_, int local_rows)
-        : m(m_), n(n_), rows(local_rows), ld(std::max(1, local_rows)),
-          a(checked_mul(size_t(ld), size_t(n_))) {}
+    Matrix(int m_, int n_, int local_rows, int local_cols)
+        : m(m_), n(n_), rows(local_rows), cols(local_cols), ld(std::max(1, local_rows)),
+          a(checked_mul(size_t(ld), size_t(std::max(0, local_cols)))) {}
 };
 } // namespace tqr

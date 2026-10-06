@@ -1,4 +1,4 @@
-"""Shared data lookup and axes for the five paper figures."""
+"""Shared data lookup and axes for the paper figures."""
 
 import csv
 import math
@@ -13,7 +13,7 @@ from matplotlib.ticker import FuncFormatter, LogLocator, MaxNLocator
 
 HERE = Path(__file__).resolve().parent
 MODES = ["fp64", "fp32", "tf32", "3xtf32"]
-TITLES = {"fp64": "FP64", "fp32": "FP32 (IEEE)", "tf32": "TF32", "3xtf32": "3×TF32"}
+TITLES = {"fp64": "FP64", "fp32": "FP32", "tf32": "TF32", "3xtf32": "3×TF32"}
 LIBS = ["TQR", "cuSOLVER", "MAGMA", "SLATE"]
 REFS = LIBS[1:]
 MARKERS = {"TQR": "o", "cuSOLVER": "s", "MAGMA": "^", "SLATE": "D"}
@@ -253,7 +253,7 @@ class Renderer:
                 ax.set_ylim(min(vals) / 1.6, max(vals) * 2)
 
     def gemm_for(self, p, mode, n):
-        # No cross-size extrapolation. The x3 fallback is labelled as an IEEE
+        # No cross-size extrapolation. The x3 fallback is labelled as an FP32
         # comparator on the bar and in the caption; it is not an x3 ceiling.
         row = lookup(self.best, p, mode, n, "GEMM", "gemm")
         if row is None and p > 1 and mode == "3xtf32":

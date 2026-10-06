@@ -1,4 +1,4 @@
-"""Consistency of the presets with the paper and behavior of the runner; no GPU required."""
+"""Consistency of the presets with the paper data and behavior of the runner; no GPU required."""
 
 import argparse
 import copy
@@ -19,7 +19,7 @@ PRESETS = json.loads(runner.PRESETS.read_text())
 
 
 class PresetTests(unittest.TestCase):
-    def test_every_preset_matches_the_paper_measurement(self):
+    def test_every_qr_omega_row_of_the_paper_data_is_a_measured_preset(self):
         with (ROOT / "plots/data/paper.csv").open() as source:
             published = {
                 (int(row["gpus"]), row["precision"], int(row["n"])): row
@@ -33,10 +33,9 @@ class PresetTests(unittest.TestCase):
                 self.assertNotIn(key, seen)
                 seen.add(key)
                 row = published[key]
-                self.assertEqual(case["published_time_s"], float(row["time_s"]))
-                for field in ("residual", "orthogonality"):
-                    if row[field]:
-                        self.assertEqual(case[f"published_{field}"], float(row[field]))
+                self.assertEqual(case["measured_time_s"], float(row["time_s"]))
+                self.assertEqual(case["measured_residual"], float(row["residual"]))
+                self.assertEqual(case["measured_orthogonality"], float(row["orthogonality"]))
         self.assertEqual(seen, set(published))
 
     def test_unmeasured_combinations_are_rejected(self):
@@ -110,7 +109,7 @@ class RunnerTests(unittest.TestCase):
         self.root = Path(self.directory.name)
         binary = self.root / "build/bin/qr_omega_single"
         binary.parent.mkdir(parents=True)
-        # A stand-in driver that reports the published time of its case scaled by FAKE_TIME_RATIO.
+        # A stand-in driver that reports the measured time of its case scaled by FAKE_TIME_RATIO.
         binary.write_text(
             "#!/usr/bin/env python3\n"
             "import json, os, sys\n"
@@ -120,11 +119,12 @@ class RunnerTests(unittest.TestCase):
             "n, mode, reps = int(option('--n')), option('--mode'), int(option('--reps'))\n"
             f"case = next(c for c in json.loads(Path({str(runner.PRESETS)!r}).read_text()) "
             "if (c['gpus'], c['mode'], c['n']) == (1, mode, n))\n"
-            "time = case['published_time_s'] * float(os.getenv('FAKE_TIME_RATIO', '1'))\n"
+            "time = case['measured_time_s'] * float(os.getenv('FAKE_TIME_RATIO', '1'))\n"
             "record = {'mode': mode, 'm': n, 'n': n, 'gpus': 1, 'status': 0, 'pass': True,\n"
             "          'times_s': [time] * reps, 'median_s': time,\n"
-            "          'residual': case['published_residual'],\n"
-            "          'orthogonality': case['published_orthogonality']}\n"
+            "          'residual': case['measured_residual'],\n"
+            "          'orthogonality': case['measured_orthogonality'], 'panel_algorithm': 'hqr',\n"
+            "          'carriers': {'products': 1, 'bounded': 1, 'replicated': 1}}\n"
             "Path(option('--output')).write_text(json.dumps(record))\n"
         )
         binary.chmod(0o755)
@@ -134,6 +134,8 @@ class RunnerTests(unittest.TestCase):
         command += [
             "--build",
             str(self.root / "build"),
+            "--presets",
+            str(runner.PRESETS),
             "--output",
             str(self.root / "results"),
             *args,
@@ -157,7 +159,7 @@ class RunnerTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertNotIn("error", self.manifest()[0])
 
-    def test_smoke_cases_are_not_compared_with_the_paper(self):
+    def test_smoke_cases_have_no_recorded_time(self):
         result = self.run_cli("--suite", "smoke", "--modes", "fp64", ratio="10")
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(self.manifest()[0]["ratios"], {})
@@ -174,6 +176,23 @@ class RunnerTests(unittest.TestCase):
         before = (self.root / "results/manifest.json").read_bytes()
         self.assertEqual(self.run_cli("--sizes", "16384", "--modes", "fp64").returncode, 1)
         self.assertEqual((self.root / "results/manifest.json").read_bytes(), before)
+
+    def test_false_switches_are_omitted(self):
+        case = {
+            "gpus": 1,
+            "mode": "fp64",
+            "n": 4096,
+            "reps": 1,
+            "options": {"lookahead": True, "tail-lookahead": False},
+        }
+        args = argparse.Namespace(build=self.root, gpus=1, reps=None)
+        _, command = runner.command(case, args, self.root / "record.json")
+        self.assertIn("--lookahead", command)
+        self.assertNotIn("--tail-lookahead", command)
+
+    def test_reproduction_compares_with_the_measured_time(self):
+        case = {"measured_time_s": 2}
+        self.assertEqual(runner.reproduction_ratios(case, {"median_s": 2.02}), {"time_s": 1.01})
 
 
 if __name__ == "__main__":

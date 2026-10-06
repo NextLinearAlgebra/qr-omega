@@ -1,6 +1,7 @@
-"""Render the paper figures at IEEE two-column width from the preserved measurements."""
+"""Render the paper figures at the IEEEtran two-column width from the measurements in plots/data."""
 
 import json
+import math
 from pathlib import Path
 
 import matplotlib
@@ -84,10 +85,12 @@ def build(curated, cfg_over):
     highlights = {(1, mode): {"n": 65536} for mode in mp.MODES}
     scaling = {}
     out = HERE / "figures"
-    # Four GPUs: the bars use n = 131,072, the smallest size of the multi-GPU range (no GEMM comparator there).
-    for mode in mp.MODES:
-        if mp.lookup(best, 4, mode, 131072):
-            highlights[(4, mode)] = {"n": 131072}
+    # Several GPUs: the bars use n = 131,072, the smallest size of the multi-GPU range (no GEMM
+    # comparator there).
+    for p in (4, 8):
+        for mode in mp.MODES:
+            if mp.lookup(best, p, mode, 131072):
+                highlights[(p, mode)] = {"n": 131072}
     r = mp.Renderer(best, acc, highlights, scaling, cfg, out)
     style()
     return r, best, acc, highlights, out
@@ -96,7 +99,9 @@ def build(curated, cfg_over):
 def save(fig, out, stem):
     out.mkdir(parents=True, exist_ok=True)
     for ext in ("pdf", "png"):
-        fig.savefig(out / f"{stem}.{ext}", dpi=220, facecolor="white")
+        # No creation date in the PDFs, so the same data always gives the same files.
+        metadata = {"CreationDate": None} if ext == "pdf" else None
+        fig.savefig(out / f"{stem}.{ext}", dpi=220, facecolor="white", metadata=metadata)
     plt.close(fig)
     print("wrote", out / f"{stem}.pdf")
 
@@ -170,7 +175,7 @@ def bars(r, ax, p, mode):
 
 def perf_figure(r, p, out, stem):
     fig, axes = plt.subplots(2, 4, figsize=(W, 2.8))
-    fig.subplots_adjust(left=0.058, right=0.995, bottom=0.105, top=0.855, hspace=0.72, wspace=0.27)
+    fig.subplots_adjust(left=0.062, right=0.995, bottom=0.135, top=0.855, hspace=0.72, wspace=0.27)
     handles = [
         Line2D(
             [],
@@ -208,6 +213,23 @@ def perf_figure(r, p, out, stem):
     save(fig, out, stem)
 
 
+def error_ticks(ax):
+    """Label 1, 2 and 5 times each power of ten (every digit if that gives fewer than two ticks)
+    when the errors span less than about a decade, so every accuracy panel shows values on its
+    axis."""
+    lo, hi = ax.get_ylim()
+    if hi / lo >= 30:
+        return
+    decades = range(math.floor(math.log10(lo)), math.ceil(math.log10(hi)) + 1)
+    for digits in ((1, 2, 5), range(1, 10)):
+        ticks = [k * 10.0**e for e in decades for k in digits if lo <= k * 10.0**e <= hi]
+        if len(ticks) >= 2:
+            break
+    ax.yaxis.set_major_locator(FixedLocator(ticks))
+    ax.yaxis.set_major_formatter(FuncFormatter(lambda v, pos: f"{v:.0e}".replace("e-0", "e-")))
+    ax.yaxis.set_minor_formatter(NullFormatter())
+
+
 def acc_figure(r, p, out, stem):
     fig, axes = plt.subplots(2, 4, figsize=(W, 2.45))
     fig.subplots_adjust(left=0.068, right=0.995, bottom=0.11, top=0.82, hspace=0.55, wspace=0.30)
@@ -237,12 +259,14 @@ def acc_figure(r, p, out, stem):
     for j, mode in enumerate(mp.MODES):
         ax = axes[0, j]
         r.curve(ax, p, mode, "residual", record=False)
+        error_ticks(ax)
         shrink(ax)
         xticks(ax, p)
         ax.set_ylabel("Residual" if j == 0 else "", labelpad=1)
         ax.set_xlabel("")
         bx = axes[1, j]
         r.curve(bx, p, mode, "orthogonality", record=False)
+        error_ticks(bx)
         shrink(bx)
         xticks(bx, p)
         bx.set_title("")
@@ -251,9 +275,10 @@ def acc_figure(r, p, out, stem):
     save(fig, out, stem)
 
 
-def scaling_figure(r, out, stem, n=229376):
-    """Strong scaling at fixed n on 2, 3, 4 GPUs: throughput of QR-Omega (IEEE FP32, TF32, 3xTF32) and of the
-    references' fastest FP32 configuration; missing bars (does not fit / not measured) are labelled."""
+def scaling_figure(r, out, stem, n=229376, counts=(2, 3, 4, 8)):
+    """Strong scaling at fixed n on 2, 3, 4 and 8 GPUs: throughput of QR-Omega (FP32, TF32, 3xTF32)
+    and of the references' fastest FP32 configuration; missing bars (does not fit / not measured) are
+    labelled."""
     fig, ax = plt.subplots(figsize=(3.45, 1.95))
     fig.subplots_adjust(left=0.155, right=0.995, bottom=0.2, top=0.83)
     series = [
@@ -267,7 +292,7 @@ def scaling_figure(r, out, stem, n=229376):
     w = 0.135
     missing = []
     for j, (lib, prec, label, color) in enumerate(series):
-        for i, p in enumerate([2, 3, 4]):
+        for i, p in enumerate(counts):
             rec = r.best.get(("qr", p, prec, n, lib))
             x = i + (j - 2.5) * w
             if rec:
@@ -315,7 +340,7 @@ def scaling_figure(r, out, stem, n=229376):
             zorder=4,
             clip_on=False,
         )
-    ax.set_xlim(-0.6, 2.6)
+    ax.set_xlim(-0.6, len(counts) - 0.4)
     ax.legend(
         handles=[Patch(facecolor=c, edgecolor="white", label=label) for _, _, label, c in series],
         loc="upper center",
@@ -326,7 +351,7 @@ def scaling_figure(r, out, stem, n=229376):
         handlelength=1.0,
         columnspacing=0.9,
     )
-    ax.set_xticks([0, 1, 2], ["2 GPUs", "3 GPUs", "4 GPUs"], fontsize=FS - 1)
+    ax.set_xticks(range(len(counts)), [f"{p} GPUs" for p in counts], fontsize=FS - 1)
     ax.set_ylabel("TFLOP/s", labelpad=1)
     ax.grid(axis="y", color="#DEE3E7", lw=0.5, which="major")
     ax.set_axisbelow(True)

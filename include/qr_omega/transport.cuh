@@ -1,36 +1,16 @@
 #pragma once
-// Communication between the GPUs of a node. Gathers and publications are one-sided: payloads travel
-// through NVSHMEM puts or the LLBuffer primitives of the low-latency NCCL over a symmetric window,
-// and signals act as credits that order the reuse of every buffer on the device, without host
-// barriers. The all-reduce of W is ncclAllReduce, whose ring sums the partials in a fixed order.
+// Communication between GPUs of a node: the NCCL implementation of arXiv:2607.16100 carries
+// collectives and ordered exchanges. Independent one-sided publications use NVSHMEM. Both paths
+// retain device-side producer/consumer and buffer-reuse dependencies without host rendezvous.
 #include "kernels.cuh"
 #ifdef TQR_MULTI
 #include <mpi.h>
 #define NVSHMEMI_HOST_ONLY
 #include <nvshmem_host.h>
 #include <nccl.h>
-#include <nccl_device.h>
-#include <nccl_device/ll_buffer.h>
-#include <nccl_device/impl/ll_buffer__funcs.h>
+#include "paper_collectives.cuh"
 #endif
 namespace tqr {
-// The GPUs among which the columns of an h x q block are divided: member z owns the columns
-// [q z / size, q (z + 1) / size).
-struct ColumnTeam {
-    int size = 0, rank[8] = {};
-    __host__ __device__ int index(int r) const {
-        for (int z = 0; z < size; ++z)
-            if (rank[z] == r)
-                return z;
-        return -1;
-    }
-    __host__ __device__ int begin(int z, int q) const {
-        return int((long long)q * z / size);
-    }
-    __host__ __device__ int owner(int j, int q) const {
-        return int(((long long)(j + 1) * size - 1) / q);
-    }
-};
 
 // One process per GPU. Under MPI every rank must run on the same node and on a different GPU.
 struct Context {
@@ -102,6 +82,12 @@ struct Context {
 #endif
         return value;
     }
+    double sum(double value) const {
+#ifdef TQR_MULTI
+        MPI_Allreduce(MPI_IN_PLACE, &value, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+#endif
+        return value;
+    }
     // Ends the job on every rank after an error.
     static void abort() {
 #ifdef TQR_MULTI
@@ -122,183 +108,68 @@ inline void nccl_check(ncclResult_t e, const char *where) {
 }
 #define NC(x) ::tqr::nccl_check((x), #x)
 
-// Every rank counts its LLBuffer kernels with the same sequence number. The window holds two
-// sub-buffers, used alternately; when the last block of a rank's kernel `seq` retires, the rank
-// stores `seq` into its slot of every peer's progress array, and a sender of kernel `seq` first
-// waits, on the device, until its receivers have finished kernel seq - 2, the previous user of the
-// same sub-buffer.
-__device__ inline unsigned long long transport_ld_acquire(const unsigned long long *p) {
-    unsigned long long v;
-    asm volatile("ld.acquire.sys.global.u64 %0,[%1];" : "=l"(v) : "l"(p) : "memory");
-    return v;
-}
-__device__ inline void transport_st_release(unsigned long long *p, unsigned long long v) {
-    asm volatile("st.release.sys.global.u64 [%0],%1;" ::"l"(p), "l"(v) : "memory");
-}
-__global__ inline void transport_wait_progress(const unsigned long long *progress, int peers,
-                                               unsigned long long target) {
-    if (threadIdx.x == 0)
-        for (int p = 0; p < peers; ++p)
-            while (transport_ld_acquire(progress + p) < target) {
-            }
-}
-// The second half of a progress array acknowledges the clearing of a window before its epochs
-// are reused.
-__global__ inline void transport_clear_ack(unsigned long long *const *peers, int ranks, int rank,
-                                           unsigned long long generation) {
-    if (threadIdx.x == 0) {
-        __threadfence_system();
-        for (int p = 0; p < ranks; ++p)
-            transport_st_release(peers[p] + ranks + rank, generation);
-    }
-}
-// The last block of a rank's kernel `seq` publishes `seq` to every peer.
-__device__ inline void transport_retire(unsigned *done, unsigned long long seq,
-                                        unsigned long long *const *peer_progress, int rank,
-                                        int ranks) {
-    __syncthreads();
-    if (threadIdx.x == 0) {
-        __threadfence_system(); // the block's writes to the peers complete first
-        unsigned *d = done + (seq & 3);
-        if (atomicAdd(d, 1u) == gridDim.x - 1) {
-            *d = 0;
-            __threadfence_system();
-            for (int p = 0; p < ranks; ++p)
-                transport_st_release(peer_progress[p] + rank, seq);
-        }
-    }
-}
-// Copies `count` elements from the root to every GPU.
-template <class T>
-__global__ void ll_broadcast(ncclDevComm comm, ncclWindow_t win, const T *input, T *output,
-                             int count, int root, uint8_t epoch, int pitch, unsigned long long seq,
-                             unsigned long long *const *peer_progress,
-                             const unsigned long long *my_progress, unsigned *done) {
-    if (threadIdx.x == 0 && seq >= 2 && comm.rank == root)
-        for (int p = 0; p < comm.nRanks; ++p)
-            while (transport_ld_acquire(my_progress + p) + 2 < seq) {
-            }
-    __syncthreads();
-    ncclLLBuffer<ncclLL, false> ll(ncclSymPtr<char>(win, 0), pitch, 0, uint8_t(2),
-                                   ncclMultimemHandle{});
-    ll.setEpochValue(epoch);
-    ll.setSubBuffer(uint32_t(seq & 1));
-    auto team = ncclTeamLsa(comm);
-    for (int i = blockIdx.x * blockDim.x + threadIdx.x; i < count; i += blockDim.x * gridDim.x) {
-        if (comm.rank == root)
-            for (int p = 0; p < comm.nRanks; ++p)
-                ll.template send<T>(team, p, i, input[i]);
-        output[i] = ll.template recv<T, false>(i);
-    }
-    transport_retire(done, seq, peer_progress, comm.rank, comm.nRanks);
-}
-// Reduce: every member sends its rows x columns partial and the owner of each column sums the
-// partials of the members in rank order. Otherwise every member sends its own columns to all
-// members. GPUs outside the team move no data and only advance the progress protocol.
-template <class T, bool Reduce>
-__global__ void ll_columns(ncclDevComm comm, ncclWindow_t win, const T *input, T *output, int rows,
-                           int columns, bool transposed, ColumnTeam members, uint8_t epoch,
-                           int pitch, unsigned long long seq,
-                           unsigned long long *const *peer_progress,
-                           const unsigned long long *my_progress, unsigned *done) {
-    const int mine = members.index(comm.rank), count = rows * columns;
-    if (mine >= 0) {
-        if (threadIdx.x == 0)
-            for (int z = 0; z < members.size; ++z)
-                while (transport_ld_acquire(my_progress + members.rank[z]) + 2 < seq) {
-                }
-        __syncthreads();
-        ncclLLBuffer<ncclLL, false> ll(ncclSymPtr<char>(win, 0), pitch, 0, uint8_t(2),
-                                       ncclMultimemHandle{});
-        ll.setEpochValue(epoch);
-        ll.setSubBuffer(uint32_t(seq & 1));
-        auto team = ncclTeamLsa(comm);
-        for (int i = blockIdx.x * blockDim.x + threadIdx.x; i < count;
-             i += blockDim.x * gridDim.x) {
-            const int row = i % rows, j = i / rows, z = members.owner(j, columns);
-            const int first = members.begin(z, columns),
-                      width = members.begin(z + 1, columns) - first;
-            if constexpr (Reduce) {
-                ll.template send<T>(team, members.rank[z], comm.rank * count + i, input[i]);
-                if (mine == z) {
-                    T sum = T(0);
-                    bool initial = true;
-                    for (int r = 0; r < comm.nRanks; ++r)
-                        if (members.index(r) >= 0) {
-                            T v = ll.template recv<T, false>(r * count + i);
-                            sum = initial ? v : sum + v;
-                            initial = false;
-                        }
-                    output[row + (j - first) * rows] = sum;
-                }
-            } else {
-                if (mine == z) {
-                    const T value =
-                        input[transposed ? j - first + row * width : row + (j - first) * rows];
-                    for (int peer = 0; peer < members.size; ++peer)
-                        ll.template send<T>(team, members.rank[peer], i, value);
-                }
-                output[transposed ? j + row * columns : i] = ll.template recv<T, false>(i);
-            }
-        }
-    }
-    transport_retire(done, seq, peer_progress, comm.rank, comm.nRanks);
+template <class T> ncclDataType_t nccl_type() {
+    return sizeof(T) == 4 ? ncclFloat : ncclDouble;
 }
 class Transport {
+    // Two local operand slots. A completed NCCL broadcast has consumed its input and installed
+    // the receiver's copy; the engine's far-update event orders reuse of the local operands.
+    struct Channel {
+        char *slots = nullptr;
+        size_t bytes = 0;
+    };
+
     Context &ctx;
-    size_t capacity, publication_capacity;
+    const int grid_row, grid_col, grid_cols;
+    size_t publication_capacity;
     Stream own;
     cudaStream_t stream;
-    uint64_t sequence = 0;
-    ncclComm_t comm = nullptr;
-    ncclDevComm device_comm{};
-    ncclWindow_t window = nullptr;
-    void *window_memory = nullptr, *staged_input = nullptr, *staged_output = nullptr;
-    size_t window_bytes = 0;
-    // The window is cleared before its 254 epochs are reused.
-    uint64_t next_clear = 254;
+    std::vector<uint64_t> unordered_sent, unordered_received;
+    ncclComm_t comm = nullptr, column_comm = nullptr, row_comm = nullptr;
+    int column_size = 1;
+    std::unique_ptr<PaperTeam> row_team, column_team;
+    std::unique_ptr<PaperLinks> links;
+    uint64_t ordered_copies = 0, collectives = 0, unordered_copies = 0;
     char *inbox = nullptr, *outbox = nullptr;
     uint64_t *signals = nullptr, *credits = nullptr;
-    unsigned long long *progress = nullptr, **peer_progress = nullptr, kernels = 0;
-    unsigned *progress_done = nullptr;
     // Credit of this rank's last publication, awaited before the outbox is staged again.
     uint64_t pending_credit = 0;
     int pending_receiver = 0;
+    std::vector<Channel> channels;
 
-    static constexpr int min_blocks = 32, elements_per_thread = 32;
-
-    template <class Kernel> static int resident_blocks(Kernel kernel) {
-        int per_sm = 0;
-        CU(cudaOccupancyMaxActiveBlocksPerMultiprocessor(&per_sm, kernel, 128, 0));
-        return std::max(1, per_sm * device_properties().multiProcessorCount);
+    int row_rank(int col) const {
+        return grid_row * grid_cols + col;
     }
-    static int blocks_for(size_t count, int resident) {
-        const size_t sized = std::min<size_t>(
-            resident, std::max<size_t>(min_blocks, (count + 128 * elements_per_thread - 1) /
-                                                       (128 * elements_per_thread)));
-        return int(std::max<size_t>(1, std::min(sized, (count + 127) / 128)));
-    }
-    // Every reader of the previous epochs finishes, then every rank clears its window and waits
-    // for the clears of the others, all on the device.
-    void clear_window_on_wrap() {
-        if (sequence < next_clear)
+    template <class T>
+    void reduce_column(const T *source, T *destination, size_t count, ncclRedOp_t op) {
+        if (!count)
             return;
-        transport_wait_progress<<<1, 1, 0, stream>>>(progress, ctx.size, kernels);
-        CU(cudaMemsetAsync(window_memory, 0, window_bytes, stream));
-        transport_clear_ack<<<1, 1, 0, stream>>>(peer_progress, ctx.size, ctx.rank, sequence);
-        transport_wait_progress<<<1, 1, 0, stream>>>(progress + ctx.size, ctx.size, sequence);
-        CU(cudaGetLastError());
-        next_clear = sequence + 254;
-    }
-    uint8_t epoch() const {
-        return uint8_t(2 + sequence % 254);
+        if (column_size > 1) {
+            ++collectives;
+            if (op == ncclSum)
+                column_team->run<T, PaperOp::Sum>(source, destination, count, 0, stream);
+            else
+                column_team->run<T, PaperOp::Maximum>(source, destination, count, 0, stream);
+        } else if (source != destination)
+            CU(cudaMemcpyAsync(destination, source, count * sizeof(T), cudaMemcpyDeviceToDevice,
+                               stream));
     }
 
   public:
-    // `bytes` bounds a collective payload, `publication_bytes` a published block.
-    Transport(Context &c, size_t bytes, size_t publication_bytes)
-        : ctx(c), capacity(std::max(bytes, size_t(64))),
+    // This GPU sits at (row, col) of a grid of `cols` columns. `publication_bytes` bounds a
+    // published block and `channel_bytes` gives the slot of every share channel, a multiple of 256
+    // bytes.
+    Transport(Context &c, size_t publication_bytes, size_t collective_bytes, int row, int col,
+              int cols, const std::vector<size_t> &channel_bytes)
+        : ctx(c), grid_row(row), grid_col(col), grid_cols(cols),
           publication_capacity(std::max(publication_bytes, size_t(64))), stream(own.s) {
+        unordered_sent.resize(ctx.size);
+        unordered_received.resize(ctx.size);
+        // NVSHMEM holds only the independent publication inboxes. Ordered channels and their
+        // reuse metadata belong to the paper NCCL path.
+        size_t heap = publication_capacity * (size_t(ctx.size) + 1) + (size_t(64) << 20);
+        if (heap > (size_t(1) << 30))
+            setenv("NVSHMEM_SYMMETRIC_SIZE", std::to_string(heap).c_str(), 0);
         nvshmemx_init_attr_t attr = NVSHMEMX_INIT_ATTR_INITIALIZER;
         MPI_Comm world = MPI_COMM_WORLD;
         attr.mpi_comm = &world;
@@ -310,21 +181,19 @@ class Transport {
         outbox = (char *)nvshmem_malloc(publication_capacity);
         signals = (uint64_t *)nvshmem_calloc(ctx.size, sizeof(uint64_t));
         credits = (uint64_t *)nvshmem_calloc(ctx.size, sizeof(uint64_t));
-        progress = (unsigned long long *)nvshmem_calloc(2 * ctx.size, sizeof(unsigned long long));
-        peer_progress =
-            (unsigned long long **)nvshmem_malloc(sizeof(unsigned long long *) * ctx.size);
-        progress_done = (unsigned *)nvshmem_calloc(4, sizeof(unsigned));
-        if (!inbox || !outbox || !signals || !credits || !progress || !peer_progress ||
-            !progress_done)
+        if (!inbox || !outbox || !signals || !credits)
             throw std::runtime_error("NVSHMEM allocation failed");
-        std::vector<unsigned long long *> peers(ctx.size);
-        for (int p = 0; p < ctx.size; ++p) {
-            peers[p] = (unsigned long long *)nvshmem_ptr(progress, p);
-            if (!peers[p])
-                throw std::runtime_error("a peer's symmetric heap is not directly addressable");
+        for (size_t bytes : channel_bytes) {
+            if (bytes % 8)
+                throw std::runtime_error("a share slot must hold whole aligned scalar words");
+            Channel ch;
+            ch.bytes = bytes;
+            CU(cudaMalloc(&ch.slots, 2 * bytes));
+            channels.push_back(ch);
         }
-        CU(cudaMemcpy(peer_progress, peers.data(), sizeof(unsigned long long *) * ctx.size,
-                      cudaMemcpyHostToDevice));
+        for (int j = 0; j < grid_cols; ++j)
+            if (j != grid_col && !nvshmem_ptr(inbox, row_rank(j)))
+                throw std::runtime_error("a GPU of the grid row is not directly addressable");
         nvshmem_barrier_all();
 
         ncclUniqueId id;
@@ -332,35 +201,33 @@ class Transport {
             NC(ncclGetUniqueId(&id));
         MPI_Bcast(&id, sizeof(id), MPI_BYTE, 0, MPI_COMM_WORLD);
         NC(ncclCommInitRank(&comm, ctx.size, id, ctx.rank));
-        window_bytes = checked_mul(capacity, size_t(ctx.size) * 4);
-        NC(ncclMemAlloc(&window_memory, window_bytes));
-        NC(ncclMemAlloc(&staged_input, capacity));
-        NC(ncclMemAlloc(&staged_output, capacity));
-        CU(cudaMemsetAsync(window_memory, 0, window_bytes, stream));
-        CU(cudaStreamSynchronize(stream));
+        // The GPUs of a grid column, in grid-row order.
+        NC(ncclCommSplit(comm, grid_col, grid_row, &column_comm, nullptr));
+        NC(ncclCommCount(column_comm, &column_size));
+        NC(ncclCommSplit(comm, grid_row, grid_col, &row_comm, nullptr));
+        if (grid_cols > 1)
+            row_team = std::make_unique<PaperTeam>(
+                row_comm, grid_cols, *std::max_element(channel_bytes.begin(), channel_bytes.end()),
+                true);
+        if (column_size > 1)
+            column_team = std::make_unique<PaperTeam>(column_comm, column_size,
+                                                      (collective_bytes + 7) / 8 * 8, false);
+        links = std::make_unique<PaperLinks>(comm, ctx.rank, ctx.size, publication_capacity);
         ctx.barrier();
-        NC(ncclCommWindowRegister(comm, window_memory, window_bytes, &window,
-                                  NCCL_WIN_COLL_SYMMETRIC));
-        ncclDevCommRequirements req = NCCL_DEV_COMM_REQUIREMENTS_INITIALIZER;
-        req.lsaBarrierCount = 0;
-        req.lsaMultimem = false;
-        NC(ncclDevCommCreate(comm, &req, &device_comm));
-        if (ncclTeamLsa(comm).nRanks != ctx.size)
-            throw std::runtime_error("the GPUs do not form one load/store-accessible team");
     }
     ~Transport() {
         if (std::uncaught_exceptions())
             return;
         cudaDeviceSynchronize();
-        ncclDevCommDestroy(comm, &device_comm);
-        ncclCommWindowDeregister(comm, window);
-        ncclMemFree(window_memory);
-        ncclMemFree(staged_input);
-        ncclMemFree(staged_output);
+        links.reset();
+        column_team.reset();
+        row_team.reset();
+        ncclCommDestroy(row_comm);
+        ncclCommDestroy(column_comm);
         ncclCommDestroy(comm);
-        nvshmem_free(peer_progress);
-        nvshmem_free(progress_done);
-        nvshmem_free(progress);
+        for (auto it = channels.rbegin(); it != channels.rend(); ++it) {
+            cudaFree(it->slots);
+        }
         nvshmem_free(credits);
         nvshmem_free(signals);
         nvshmem_free(outbox);
@@ -375,13 +242,47 @@ class Transport {
     cudaStream_t bound() const {
         return stream;
     }
+    // Slot s of a share channel on this GPU.
+    void *slot(int channel, int s) const {
+        return channels[channel].slots + size_t(s) * channels[channel].bytes;
+    }
+    // The first `bytes` of slot s, from the GPU of grid column `root` to the other GPUs of this
+    // grid row. Every GPU of the row makes every share of the row, in the same order.
+    void row_share(int channel, int s, int root, size_t bytes) {
+        Channel &ch = channels[channel];
+        if (bytes > ch.bytes)
+            throw std::runtime_error("a share exceeds its slot");
+        if (grid_cols == 1 || !bytes)
+            return;
+        if (bytes % sizeof(uint32_t))
+            throw std::runtime_error("row share requires whole scalar words");
+        ++collectives;
+        auto *mine = static_cast<uint32_t *>(slot(channel, s));
+        row_team->run<uint32_t, PaperOp::Broadcast>(mine, mine, bytes / sizeof(uint32_t), root,
+                                                    stream);
+    }
+    // Matching ordered exchange. Only the sender and receiver launch a kernel.
+    void publish(int sender, int receiver, const void *source, void *destination, size_t bytes) {
+        if (ctx.rank == sender || ctx.rank == receiver)
+            ++ordered_copies;
+        links->exchange(sender, receiver, source, destination, bytes, stream);
+    }
     // Copies `bytes` from `source` on the sender to `destination` on the receiver. The sender waits
     // for the credit of its previous publication before it stages the next one, and every sender
-    // owns its region of the receiver's inbox.
-    void publish(int sender, int receiver, const void *source, void *destination, size_t bytes) {
-        const uint64_t generation = ++sequence;
+    // owns its region of the receiver's inbox. Every rank makes every call, in the same order.
+    void publish_unordered(int sender, int receiver, const void *source, void *destination,
+                           size_t bytes) {
+        if (ctx.rank != sender && ctx.rank != receiver)
+            return;
+        ++unordered_copies;
         if (bytes > publication_capacity)
             throw std::runtime_error("publication exceeds the transport capacity");
+        if (sender == receiver) {
+            CU(cudaMemcpyAsync(destination, source, bytes, cudaMemcpyDeviceToDevice, stream));
+            return;
+        }
+        const uint64_t generation =
+            ctx.rank == sender ? ++unordered_sent[receiver] : ++unordered_received[sender];
         char *slot = inbox + size_t(sender) * publication_capacity;
         if (ctx.rank == sender) {
             if (pending_credit)
@@ -401,65 +302,57 @@ class Transport {
                                          stream);
         }
     }
-    // Copies `count` elements from `source` on the root to `destination` on every GPU.
-    template <class T> void broadcast(int root, const T *source, T *destination, int count) {
-        ++sequence;
-        const size_t bytes = size_t(count) * sizeof(T);
-        if (bytes > capacity)
-            throw std::runtime_error("broadcast exceeds the transport capacity");
+    // destination = sum (or maximum) of `source` over the GPUs of this grid column.
+    template <class T> void column_allreduce(const T *source, T *destination, size_t count) {
+        reduce_column(source, destination, count, ncclSum);
+    }
+    template <class T> void column_max(const T *source, T *destination, size_t count) {
+        reduce_column(source, destination, count, ncclMax);
+    }
+    // The `count` elements of every GPU of this grid column, in grid-row order; `source` may be
+    // this GPU's place in `destination`.
+    template <class T> void column_allgather(const T *source, T *destination, size_t count) {
         if (!count)
             return;
-        clear_window_on_wrap();
-        if (ctx.rank == root)
-            CU(cudaMemcpyAsync(staged_input, source, bytes, cudaMemcpyDeviceToDevice, stream));
-        static const int resident = resident_blocks(ll_broadcast<T>);
-        ll_broadcast<T><<<blocks_for(count, resident), 128, 0, stream>>>(
-            device_comm, window, (T *)staged_input, (T *)staged_output, count, root, epoch(),
-            int(capacity * ctx.size), ++kernels, peer_progress, progress, progress_done);
-        CU(cudaGetLastError());
-        CU(cudaMemcpyAsync(destination, staged_output, bytes, cudaMemcpyDeviceToDevice, stream));
+        if (column_size > 1) {
+            ++collectives;
+            column_team->run<T, PaperOp::Gather>(source, destination, count, 0, stream);
+        } else if (source != destination)
+            CU(cudaMemcpyAsync(destination, source, count * sizeof(T), cudaMemcpyDeviceToDevice,
+                               stream));
     }
-    // destination = sum over the GPUs of source, identical on every GPU.
-    template <class T> void allreduce(const T *source, T *destination, size_t count) {
-        ++sequence;
-        if (count)
-            NC(ncclAllReduce(source, destination, count, sizeof(T) == 4 ? ncclFloat : ncclDouble,
-                             ncclSum, comm, stream));
-    }
-    // The team's columns of a rows x columns block (see ll_columns): the reduction of the
-    // members' partials to the owners of the columns, or the gather of every owner's columns.
-    template <class T, bool Reduce>
-    void columns(const ColumnTeam &team, const T *source, T *destination, int rows, int columns,
-                 bool transposed) {
-        const size_t count = checked_mul(size_t(rows), size_t(columns));
-        if (count * sizeof(T) > capacity)
-            throw std::runtime_error("column exchange exceeds the transport capacity");
-        ++sequence;
-        if (!count)
-            return;
-        clear_window_on_wrap();
-        const bool member = team.index(ctx.rank) >= 0;
-        static const int resident = resident_blocks(ll_columns<T, Reduce>);
-        ll_columns<T, Reduce><<<member ? blocks_for(count, resident) : 1, 128, 0, stream>>>(
-            device_comm, window, source, destination, rows, columns, transposed, team, epoch(),
-            int(capacity * ctx.size), ++kernels, peer_progress, progress, progress_done);
-        CU(cudaGetLastError());
+    json report() const {
+        return {{"collectives_backend", "paper-nccl-LLBuffer"},
+                {"ordered_backend", "paper-nccl-LLBuffer"},
+                {"unordered_backend", "NVSHMEM"},
+                {"paper", "https://arxiv.org/abs/2607.16100"},
+                {"nccl_commit", "5357eff325eddf978137de7140195a5568fa8a11"},
+                {"collectives", collectives},
+                {"ordered_exchanges", ordered_copies},
+                {"unordered_publications", unordered_copies}};
     }
 };
 #else
 // A build without MPI runs on one GPU and never creates a transport.
 class Transport {
   public:
-    Transport(Context &, size_t, size_t) {}
+    Transport(Context &, size_t, size_t, int, int, int, const std::vector<size_t> &) {}
     void bind(cudaStream_t) {}
     cudaStream_t bound() const {
         return nullptr;
     }
+    void *slot(int, int) const {
+        return nullptr;
+    }
+    void row_share(int, int, int, size_t) {}
     void publish(int, int, const void *, void *, size_t) {}
-    template <class T> void broadcast(int, const T *, T *, int) {}
-    template <class T> void allreduce(const T *, T *, size_t) {}
-    template <class T, bool Reduce>
-    void columns(const ColumnTeam &, const T *, T *, int, int, bool) {}
+    void publish_unordered(int, int, const void *, void *, size_t) {}
+    template <class T> void column_allreduce(const T *, T *, size_t) {}
+    template <class T> void column_max(const T *, T *, size_t) {}
+    template <class T> void column_allgather(const T *, T *, size_t) {}
+    json report() const {
+        return json::object();
+    }
 };
 #endif
 } // namespace tqr

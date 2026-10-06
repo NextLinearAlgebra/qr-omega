@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run the QR-Omega configurations measured in the paper and compare each with its published time and errors."""
+"""Reproduce the measured QR-Omega cells of reproducers/presets.json."""
 
 import argparse
 import datetime
@@ -24,7 +24,7 @@ def is_headline(case):
     gpus, n, mode = case["gpus"], case["n"], case["mode"]
     if gpus == 1:
         return n in (16384, 65536, 131072) or (n in (256, 1024) and mode in ("fp64", "fp32"))
-    if gpus == 4:
+    if gpus in (4, 8):
         return (
             n == 131072
             or (n == 229376 and mode in ("fp64", "fp32"))
@@ -34,13 +34,20 @@ def is_headline(case):
 
 
 def smoke_case(presets, mode, gpus):
-    """A quick unpublished case: the measured schedule of n = 4096 on one GPU, a shrunk one otherwise."""
+    """A quick check at n = 4096: the measured options of that size on one GPU, and the options of
+    the GPU count's smallest measured size otherwise."""
     if gpus == 1:
-        base = next(c for c in presets if (c["gpus"], c["mode"], c["n"]) == (1, mode, SMOKE_N))
+        base = next(
+            (c for c in presets if (c["gpus"], c["mode"], c["n"]) == (1, mode, SMOKE_N)), None
+        )
+        if base is None:
+            raise ValueError(f"no measured smoke preset for {mode} on {gpus} GPUs")
         options = base["options"]
     else:
-        base = next(c for c in presets if c["gpus"] > 1 and c["mode"] == mode)
-        options = {**base["options"], "groups": 32}
+        base = next((c for c in presets if c["gpus"] == gpus and c["mode"] == mode), None)
+        if base is None:
+            raise ValueError(f"no measured smoke preset for {mode} on {gpus} GPUs")
+        options = {k: v for k, v in base["options"].items() if not k.startswith("tail-")}
     return {"gpus": gpus, "mode": mode, "n": SMOKE_N, "reps": base["reps"], "options": options}
 
 
@@ -56,22 +63,11 @@ def select(presets, args):
         and (c["n"] in args.sizes if args.sizes else args.suite == "paper" or is_headline(c))
     ]
     measured = {(c["n"], c["mode"]) for c in cases}
-    wanted = {(n, mode) for n in args.sizes or () for mode in args.modes or ()}
+    wanted = {(n, mode) for n in args.sizes or () for mode in modes}
     unmeasured_sizes = set(args.sizes or ()) - {n for n, _ in measured}
     if not cases or wanted - measured or unmeasured_sizes:
         raise ValueError("no measured preset for the request; --list shows the measured cases")
     return sorted(cases, key=lambda c: (c["n"], MODES.index(c["mode"])))
-
-
-def planned(args):
-    """Cases of any size whose schedules the planner selects from the profile of the GPU."""
-    sys.path.insert(0, str(ROOT))
-    from machine import Machine
-    from machine.collect import cached
-    from planner.plan import case
-
-    machine = Machine.load(args.machine) if args.machine else Machine(cached(args.build)[0])
-    return [case(machine, mode, n, args.gpus) for n in args.sizes for mode in args.modes or MODES]
 
 
 def command(case, args, result):
@@ -80,11 +76,27 @@ def command(case, args, result):
     reps = str(args.reps or case["reps"])
     argv = [str(binary), "--mode", case["mode"], "--m", rows, "--n", columns, "--reps", reps]
     for key, value in case["options"].items():
+        if value is False:
+            continue
         argv += [f"--{key}"] if value is True else [f"--{key}", str(value)]
     argv += ["--output", str(result)]
     if args.gpus > 1:
         argv = [args.mpi, "--bind-to", "none", "--oversubscribe", "-np", str(args.gpus), *argv]
     return binary, argv
+
+
+def acceptable(record):
+    """An HQR factorization that passed its checks, carried every product within the 2.5D bound
+    c^2 <= p_i p_j, and replicated at least one product (c >= 2)."""
+    carriers = record.get("carriers", {})
+    return (
+        record.get("pass") is True
+        and record.get("status") == 0
+        and record.get("panel_algorithm") == "hqr"
+        and carriers.get("products", 0) > 0
+        and carriers.get("bounded") == carriers.get("products")
+        and (record.get("n", 0) <= 1 or carriers.get("replicated", 0) > 0)
+    )
 
 
 def load_record(path, case, reps):
@@ -104,14 +116,11 @@ def load_record(path, case, reps):
     return record
 
 
-def paper_ratios(case, record):
-    """Measured over published time and errors; empty for a smoke case."""
-    measured = {"time_s": record["median_s"], **record}
-    return {
-        key: measured[key] / case[f"published_{key}"]
-        for key in ("time_s", "residual", "orthogonality")
-        if f"published_{key}" in case
-    }
+def reproduction_ratios(case, record):
+    """Time over the recorded measurement; empty for a smoke case, which has none."""
+    if "measured_time_s" not in case:
+        return {}
+    return {"time_s": record["median_s"] / case["measured_time_s"]}
 
 
 def run_case(case, args, output):
@@ -136,15 +145,16 @@ def run_case(case, args, output):
                 check=True,
             )
         record = load_record(result, case, args.reps or case["reps"])
-        ratios = paper_ratios(case, record)
+        if not acceptable(record):
+            raise ValueError("HQR, carrier bounds or real replication failed")
+        ratios = reproduction_ratios(case, record)
         entry.update(time_s=record["median_s"], ratios=ratios)
-        errors = [ratios.get(key, 0) for key in ("residual", "orthogonality")]
-        if ratios.get("time_s", 0) > args.max_slowdown or max(errors) > args.max_error_ratio:
-            raise ValueError(f"worse than the paper: ratios {ratios}")
+        if ratios.get("time_s", 0) > args.max_slowdown:
+            raise ValueError(f"slower than the recorded measurement: ratios {ratios}")
         note = ""
         if ratios:
             tflops = (4 / 3) * case["n"] ** 3 / record["median_s"] / 1e12
-            note = f"; {tflops:.2f} TFLOP/s; {ratios['time_s']:.3f} x paper time"
+            note = f"; {tflops:.2f} TFLOP/s; {ratios['time_s']:.3f} x recorded time"
         print(f"PASS {name}: {record['median_s']:.6g} s{note}", flush=True)
     except (OSError, ValueError, subprocess.SubprocessError) as error:
         entry["error"] = str(error)
@@ -154,7 +164,8 @@ def run_case(case, args, output):
 
 def parse_args():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--gpus", type=int, choices=(1, 2, 3, 4), default=1)
+    parser.add_argument("--gpus", type=int, choices=(1, 2, 3, 4, 8), default=1)
+    parser.add_argument("--presets", type=Path, default=PRESETS, help="measured cells")
     parser.add_argument(
         "--suite",
         choices=("headlines", "paper", "smoke"),
@@ -170,37 +181,29 @@ def parse_args():
     parser.add_argument("--reps", type=int, help="timed repetitions instead of the recorded count")
     parser.add_argument("--timeout", type=int, default=7200, help="seconds per case")
     parser.add_argument(
-        "--max-slowdown", type=float, default=1.04, help="allowed time / paper time"
+        "--max-slowdown", type=float, default=1.04, help="allowed time / recorded time"
     )
-    parser.add_argument(
-        "--max-error-ratio", type=float, default=1.25, help="allowed error / paper error"
-    )
-    parser.add_argument(
-        "--auto", action="store_true", help="select the schedules of --sizes from the machine"
-    )
-    parser.add_argument("--machine", type=Path, help="machine profile for --auto (default: probe)")
     parser.add_argument("--mpi", default="mpirun", help="Open MPI launcher")
     parser.add_argument("--plan", action="store_true", help="print the commands and run nothing")
     parser.add_argument("--list", action="store_true", help="list the measured cases")
     args = parser.parse_args()
     if (args.reps is not None and args.reps < 1) or args.timeout < 1:
         parser.error("repetitions and timeout must be positive")
-    if min(args.max_slowdown, args.max_error_ratio) < 1:
-        parser.error("the allowed ratios must be at least 1")
-    if args.auto and not args.sizes:
-        parser.error("--auto needs --sizes")
+    if args.max_slowdown < 1:
+        parser.error("the allowed slowdown must be at least 1")
     return args
 
 
 def main():
     args = parse_args()
-    presets = json.loads(PRESETS.read_text())
+    sys.path.insert(0, str(ROOT))
+    presets = json.loads(args.presets.read_text())
     if args.list:
         for case in presets:
             if case["gpus"] == args.gpus:
                 print(case["gpus"], case["mode"], case["n"])
         return
-    cases = planned(args) if args.auto else select(presets, args)
+    cases = select(presets, args)
     stamp = datetime.datetime.now(datetime.timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     output = (args.output or ROOT / "results" / stamp).resolve()
     if not args.plan:

@@ -1,13 +1,15 @@
 #pragma once
 // TF32 and 3xTF32 products on Hopper wgmma, built from CUTLASS 3 warp-specialized kernels with TMA
 // loads and a persistent tile scheduler. In the TF32 GEMM the two consumer warp groups compute the
-// whole output tile from the two halves of every k-tile of 32 columns and add their partials in the
-// order p0 + p1 through shared memory before the epilogue commits the tile (c = 2 in the block). W
-// also cuts the rows into c / 2 contiguous slices across blocks, written as partial slices and
-// summed in a fixed order. 3xTF32 writes every operand as big + small TF32 parts: D runs the TF32
-// kernel on operands pre-split into three K segments (small big, big small, big big), and W splits
-// X in the registers of the warp groups and promotes the tensor-core accumulator to FP32 every few
-// k-tiles.
+// whole 128 x 128 output tile from the two halves of every k-tile of 32 columns and add their
+// partials in the order p0 + p1 through shared memory before the epilogue commits the tile; the
+// four warps of a group hold its rows, so the block is the carrier (4, 1, 2). W can also cut the
+// rows into cg contiguous slices across blocks, cg^2 <= tiles within the 2.5D bound, written as
+// partial slices and summed in a fixed order. 3xTF32 writes every operand as big + small TF32
+// parts: D runs the TF32 kernel on operands pre-split into three K segments (small big, big small,
+// big big), and W splits X in the registers of the eight warps of its two groups, which hold the
+// rows of the tile (the carrier (8, 1, 1) in the block), and promotes the tensor-core accumulator
+// to FP32 every few k-tiles.
 //
 // Operands are read K-major through TMA: W = V^T X takes V and X column-major as they are, D takes
 // a row-major copy of V that `launch_pack_vr` writes for every product.
@@ -447,8 +449,19 @@ inline int gmma_x3_seg(int h) {
 inline int gmma_w_slice(int rows, int cg) {
     return cg > 1 ? rows / (32 * cg) * 32 : rows;
 }
+// The 128 x 128 tiles of an M x N output, the GPU-level fibres of the wgmma products.
+inline long long gmma_tiles(int m, int n) {
+    return (long long)ceildiv(m, 128) * ceildiv(n, 128);
+}
+// Carriers of the TF32 GEMM over an M x N output with cg slices of K, and of the 3xTF32 W.
+inline Carrier gmma_carrier(int m, int n, int cg) {
+    return Carrier{}.set(GpuLevel, ceildiv(m, 128), ceildiv(n, 128), cg).set(BlockLevel, 4, 1, 2);
+}
+inline Carrier gmma_w3rs_carrier(int h, int q, int c) {
+    return Carrier{}.set(GpuLevel, ceildiv(h, 128), ceildiv(q, 128), c).set(BlockLevel, 1, 8, 1);
+}
 inline bool gmma_w_supported(int c, int rows) {
-    return (c == 2 || c == 4 || c == 8) && rows >= 16 * c;
+    return c >= 2 && c % 2 == 0 && rows >= 16 * c;
 }
 // Z3[n*ld3 + {0,hs,2hs} + k] = {big, small, big} of Z[k + n*ldz] (zero for k >= h), 3hs x q
 // column-major.
@@ -551,7 +564,7 @@ template <class Gemm> bool implementable(const typename Gemm::Arguments &a) {
 inline void combine_slices(const float *part, long long sp, int cg, float *w, int ldw, int q, int h,
                            cudaStream_t st) {
     carrier_g_combine<float>
-        <<<std::min(1024, ceildiv(h * q, 256)), 256, 0, st>>>(part, sp, cg, w, ldw, q, h);
+        <<<std::min(1024, ceildiv(h * q, 256)), 256, 0, st>>>(part, sp, cg, w, ldw, q, h, 1, 0);
     CU(cudaGetLastError());
 }
 } // namespace gmma_detail
@@ -706,7 +719,7 @@ inline void launch_gmma_w(int c, const float *v, int ldv, const float *x, int ld
 inline bool gmma_w3rs_admits(int c, const float *v, int ldv, const float *x, int ldx, float *w,
                              int ldw, int rows, int h, int q, const float *vsplit) {
     using G = gmma_detail::GemmW3RS;
-    if ((c != 2 && c != 4 && c != 8) || !h || !q || rows < 32 * c || !vsplit)
+    if (c < 1 || !h || !q || rows < 32 * c || !vsplit)
         return false;
     const int ldvs = gmma_vsplit_ld(rows);
     const float *vb = vsplit, *vs = vsplit + size_t(ldvs) * h;
@@ -744,7 +757,8 @@ inline void launch_gmma_w3rs(int c, const float *v, int ldv, const float *x, int
                                 q, h, rem, 1, 1.f);
         gmma_detail::run<G>(r, st, tiles_per_block);
     }
-    gmma_detail::combine_slices(w, sp, c, w, ldw, q, h, st);
+    if (c > 1)
+        gmma_detail::combine_slices(w, sp, c, w, ldw, q, h, st);
 }
 // G(h x q) = V1^T V2 of an aggregated T in TF32: cg GPU-level row slices of whole k-tiles, the last
 // one also taking the remainder, each with the two warp-group peers of W.

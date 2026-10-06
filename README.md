@@ -1,108 +1,119 @@
 # QR-Ω
 
-Householder QR for NVIDIA Hopper GPUs, retaining the configurations behind the
-IPDPS 2027 paper. The code supports FP64, IEEE FP32, TF32, and 3×TF32 on one GPU
-and on multiple GPUs within a node.
+Householder QR for NVIDIA Hopper GPUs, on one GPU and on the GPUs of a node, in FP64, FP32, TF32
+and 3×TF32. QR-Ω combines hierarchical Householder QR (HQR) with 2.5D scheduling:
 
-The main results on H200 are:
+* **Hierarchical panels.** Each GPU factors its rows of a panel as an HQR elimination tree: GEQRT
+  on domains, TSQRT chains inside a domain and TTQRT merges between domains, every node held in
+  registers. Across GPUs, the GPUs of the panel's grid column merge their triangles.
+* **Stable compact WY.** The thin Q of the tree is turned into compact-WY factors by Householder
+  reconstruction (modified LU, as in LAPACK `xORHR_COL`) in one fused kernel, so up to 16 panels can
+  be aggregated into one wide update. The factorization stays backward stable and its accuracy does
+  not depend on the condition number of A; no Gram or Cholesky QR is involved.
+* **2.5D carriers.** Every product of an update (`W = VᵀX`, `Z = TᵀW`, `X −= V Z`, and the tree
+  updates) runs on a `p_i × p_j` grid of GPUs, thread blocks or warps with a contraction replication
+  `c` that satisfies `c² ≤ p_i p_j`. On 8 GPUs a 2×4 grid carries W with `c = 2`; inside a GPU, W, Z
+  and the tree updates are replicated over blocks and warps. Every run reports the carriers it used.
+* **Tuned schedules.** Tree shape, `c` of every product, GPU grid, aggregation, look-ahead and
+  tails are tuned by measurement and kept in `reproducers/presets.json` for every matrix size,
+  precision and GPU count in the paper.
 
-| Configuration | Paper result |
-| --- | --- |
-| One GPU, FP64 / FP32 | Up to 1.7× over cuSOLVER; up to 9.3× over MAGMA and SLATE |
-| One GPU, n = 131,072 | 47.0 / 47.5 TFLOP/s in FP64 / FP32; 247.4 / 91.9 in TF32 / 3×TF32 |
-| Four GPUs, FP64 / FP32 | 1.06–1.14× over cuSOLVERMp |
-| Four GPUs, TF32, n = 327,680 | 777 TFLOP/s |
+Ordered traffic and collectives use the low-latency NCCL of Shen et al.,
+[Every Microsecond Matters](https://arxiv.org/abs/2607.16100); independent triangle publications use
+NVSHMEM. [docs/replication.md](docs/replication.md) lists what each replication factor stores.
 
-These are the published measurements. Fresh runs check their numerical results
-and compare timing and errors with the matching paper preset.
+## Results
+
+NVIDIA H200 GPUs in DGX nodes. Each time is the median of the timed repetitions of two validated runs
+of the cell's configuration (`reproducers/presets.json`). The references are cuSOLVER (one GPU),
+cuSOLVERMp, MAGMA and SLATE, each tuned for every size (on eight GPUs, tuned at n = 131,072 and its
+two best configurations measured at every size); TF32 and 3×TF32 are compared with the references'
+FP32. The figures are in `plots/figures`.
+
+| GPUs | Cells | Speedup over the fastest reference |
+| --- | --- | --- |
+| 1 | 81: n = 256 to 131,072, four modes | FP64 1.01–1.93, FP32 0.98–2.24, TF32 1.75–5.31, 3×TF32 1.51–2.73 |
+| 2, 3 | 6: n = 229,376, FP32/TF32/3×TF32 | FP32 1.12, TF32 5.71–6.07, 3×TF32 2.13–2.15 |
+| 4 | 25: n = 131,072 to 327,680 | FP64 1.12–1.21, FP32 1.12–1.22, TF32 4.71–5.27, 3×TF32 2.19–2.29 |
+| 8 (2×4 grid) | 27: n = 131,072 to 327,680 | FP64 1.02–1.06, FP32 1.11–1.12, TF32 3.45–4.21, 3×TF32 1.89–1.99 |
+
+The largest factorizations run at 47.2 TFLOP/s (FP64, one GPU, n = 131,072), 177.5 (FP64, four GPUs,
+n = 229,376), 317 (FP64, eight GPUs, n = 294,912) and 1,327 (TF32, eight GPUs, n = 327,680).
 
 ## Build
 
-Requires Hopper (`sm_90a`), CUDA 13.0+ (paper: 13.0.2), GCC 13, CMake 3.25+, and
-Python 3.9+. CMake fetches the pinned CUTLASS and nlohmann/json dependencies;
-`CUTLASS_ROOT` and `JSON_INCLUDE_DIR` can select existing copies.
+Requires Hopper (`sm_90a`), CUDA 13.0+ (measured with 13.0.2), GCC 13, CMake 3.25+ and Python 3.11+.
+CMake fetches the pinned CUTLASS and nlohmann/json; `CUTLASS_ROOT` and `JSON_INCLUDE_DIR` select
+existing copies.
 
 ```sh
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
-cmake --build build --parallel 8
+cmake --build build --parallel 16
 ```
 
-For multiple GPUs, install Open MPI, NVSHMEM 3.6.5, and the paper's
-[low-latency NCCL](https://github.com/ss16118/low-latency-nccl)
-(commit `5357eff325eddf978137de7140195a5568fa8a11`, which supplies
-`nccl_device/ll_buffer.h`), then configure:
+For several GPUs, install Open MPI, NVSHMEM 3.6.5 and the
+[low-latency NCCL](https://github.com/ss16118/low-latency-nccl) at commit
+`5357eff325eddf978137de7140195a5568fa8a11`, put that NCCL first on `LD_LIBRARY_PATH`, and configure:
 
 ```sh
-cmake -S . -B build -DQR_OMEGA_BUILD_MULTI_GPU=ON \
-  -DNCCL_ROOT=/path/to/low-latency-nccl/build \
-  -DNVSHMEM_ROOT=/path/to/nvshmem -DCMAKE_PREFIX_PATH=/path/to/mpi
-cmake --build build --parallel 8
+cmake -S . -B build -DQR_OMEGA_BUILD_MULTI_GPU=ON -DQR_OMEGA_BUILD_GPU_TESTS=ON \
+  -DNCCL_ROOT=/path/to/low-latency-nccl/build -DNVSHMEM_ROOT=/path/to/nvshmem \
+  -DCMAKE_PREFIX_PATH=/path/to/mpi
+cmake --build build --parallel 16
 ```
-
-Put that NCCL first on `LD_LIBRARY_PATH` when running QR-Ω.
 
 ## Reproduce
 
-Run inside an exclusive GPU allocation, with `CUDA_VISIBLE_DEVICES` selecting the
-allocated GPUs. One command handles every precision and GPU count:
+Run timings on reserved GPUs at fixed clocks, with nothing else on the node.
 
 ```sh
-python3 reproducers/runner.py --suite smoke                    # small correctness checks
-python3 reproducers/runner.py                                 # one-GPU headline cases
-python3 reproducers/runner.py --gpus 4                         # four-GPU headline cases
-python3 reproducers/runner.py --sizes 16384 --modes fp64 fp32   # specific paper cases
-python3 reproducers/runner.py --gpus 4 --plan                  # inspect commands
+ctest --test-dir build -L gpu --output-on-failure            # GPU correctness tests
+python3 -m unittest discover -s tests                         # host tests
+python3 reproducers/runner.py --gpus 8 --sizes 131072 --plan  # print the 8-GPU commands
 ```
 
-Headline cases cover panel-dominated and large trailing-update workloads. Results
-include every-column reconstruction, orthogonality, raw times, and provenance in
-`results/`. A run fails if it is more than 4% slower than the paper or either error
-exceeds 1.25× the recorded value. These tolerances are configurable; a passing
-smoke test makes no performance claim. `--suite paper` runs the complete measured
-range. See [the measurement protocol](reproducers/README.md).
-
-For a size without a measured preset, or another GPU, the planner selects the
-schedule from a profile of the GPU:
+Every measurement of the paper on one node with eight H200 GPUs, each cell with its recorded options:
 
 ```sh
-cmake --build build --target machine_probe                          # once
-python3 -m planner --n 20000 --mode fp64 --run                      # probe, select, factor
-python3 reproducers/runner.py --auto --sizes 20000 --modes fp64 tf32
+for p in 1 2 3 4 8; do python3 reproducers/runner.py --gpus $p --suite paper --output results/p$p; done
 ```
 
-The probe measures the GPU in a few seconds, and the planner minimizes a cost
-model over the schedules that keep every carried product at c ≥ 2 and fit every
-memory level. [The profile](machine/README.md) is independent of QR;
-[the planner](planner/README.md) documents the model and its validation.
+That is 139 cells (81 on one GPU, 3 each on two and three, 25 on four, 27 on eight) and takes about
+six hours, most of it in the largest four- and eight-GPU matrices; `--sizes` and `--modes` select
+subsets, and the default `--suite headlines` runs the cells the paper quotes. Each run checks the
+residual `max_J ‖A_J − (QR)_J‖_F / ‖A_J‖_F` over column blocks of all n columns and the
+orthogonality error `‖Q(QᵀX) − X‖_F / ‖X‖_F`, reports how every product was carried, and fails if it
+is more than 4% slower than its recorded time.
 
-Regenerate the five paper figures and headline table from the preserved data:
+The figures come from the measured cells and the reference measurements
+(`plots/data/references.csv`: cuSOLVER, cuSOLVERMp, MAGMA and SLATE, each tuned for every size;
+TF32 and 3×TF32 are compared with their FP32):
 
 ```sh
-python3 -m venv .venv
-.venv/bin/pip install -r plots/requirements.txt
-.venv/bin/python plots/reproduce.py
+python3 -m venv .venv && .venv/bin/pip install -r plots/requirements.txt
+python3 plots/collect.py                 # plots/data/paper.csv
+.venv/bin/python plots/reproduce.py      # plots/figures/*.pdf and headline-results.csv
 ```
+
+The schedules are tuned by hand: each preset in `reproducers/presets.json` records the driver
+options of its cell, and [docs/code-map.md](docs/code-map.md) lists them. A new size starts from the
+preset of a neighbouring size. [reproducers/README.md](reproducers/README.md) covers the reference
+adapters and the measurement protocol.
 
 ## Read the code
 
 | Location | Purpose |
 | --- | --- |
-| `benchmarks/qr_omega.cu` | The driver: input generation, timing, residual and orthogonality checks |
+| `benchmarks/qr_omega.cu` | The driver: input, timing, residual and orthogonality checks |
 | `include/qr_omega/engine.cuh`, `plan.hpp` | The elimination list and its schedule on one or several GPUs |
-| `include/qr_omega/update.cuh` | The trailing update and the choice of carrier for every product |
-| `include/qr_omega/panel_*.cuh` | Panel factorizations: cooperative and register-resident |
-| `include/qr_omega/carrier_*.cuh` | The carried products on CUDA cores and tensor cores |
-| `include/qr_omega/transport.cuh` | Communication between the GPUs of a node |
-| `machine/` | The machine probe, its profiles, and the cost-model terms read from them |
-| `planner/` | Schedule selection from a profile: admissible schedules, cost model, calibration |
-| `reproducers/` | The runner, the measured presets, optional reference-library adapters |
-| `plots/` | The paper's data and the command that regenerates its figures |
-| `tests/` | Preset, runner and planner checks that need no GPU |
+| `include/qr_omega/domains.cuh`, `panel_register.cuh` | GE/TS/TT trees of register-resident nodes |
+| `include/qr_omega/householder_reconstruct.cuh` | Thin Q of a tree and its reconstruction into compact WY, in one launch |
+| `include/qr_omega/update.cuh`, `tree_update.cuh` | The updates and the carrier of every product |
+| `include/qr_omega/carrier*.{hpp,cuh}` | The carried products on CUDA cores and tensor cores, and the 2.5D bound |
+| `include/qr_omega/transport.cuh`, `paper_collectives.cuh` | Low-latency NCCL and NVSHMEM operations between GPUs |
+| `reproducers/` | Measured cells, their runner, and the reference adapters |
+| `plots/` | Measurements and the scripts that draw the figures |
+| `tests/` | Host contracts, GPU panel, update, reconstruction and transport tests |
 
-[The code map](docs/code-map.md) follows the execution path and lists the driver options. Use `.clang-format` for
-CUDA/C++ and the Ruff settings in `pyproject.toml` for Python. Run the host checks with
-`python3 -m unittest discover -s tests -v`.
-
-Panel kernels adapt gau.nernst's GPU MODE QR-v2 submission 844219; FP64 carried
-updates follow KAMI; tensor-core kernels use CUTLASS/CuTe; inter-GPU gathers use
-Shen et al.'s low-latency NCCL. See [third-party notices](third_party/README.md).
+Panel kernels adapt gau.nernst's GPU MODE QR-v2 submission 844219; FP64 carried updates follow KAMI;
+tensor-core kernels use CUTLASS/CuTe. See [third-party notices](third_party/README.md).

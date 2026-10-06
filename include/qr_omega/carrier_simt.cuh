@@ -1,9 +1,9 @@
 #pragma once
 // IEEE FP32 carrier of W = V^T X on CUDA cores, used for the Gram products of the T factors. The
-// two slices of a block split every 16-deep k-tile 8 / 8 (the residue tile last), the blocks of a
-// cluster and the groups of blocks of the GPU split K into 16-aligned balanced ranges, and block z
-// sums its rows of the tile over the pieces (z', w) in the order z' = 0..CL-1, w = 0..SK-1 through
-// distributed shared memory before it commits them; group partials are summed in HBM.
+// eight warps of a slice split the columns of the 128 x 128 output tile and the two slices of a
+// block split every 16-deep k-tile 8 / 8 (the residue tile last): the block is the carrier
+// (1, 8, 2). Groups of blocks of the GPU split K again into 16-aligned balanced ranges, within the
+// 2.5D bound of the output tiles, and their partials are summed in HBM in a fixed order.
 #include "carrier_cutlass.cuh"
 namespace tqr {
 namespace simt {
@@ -70,17 +70,13 @@ struct Args {
     float *P;
     long long sp;
 };
-template <int CL>
 __global__ void __launch_bounds__(THREADS, 1) simt_carrier_kernel(const __grid_constant__ Args a) {
     extern __shared__ __align__(128) float sm[];
     const int lt = threadIdx.x, sl = threadIdx.y, tid = lt + SLICE * sl;
-    int z = 0;
-    if constexpr (CL > 1)
-        z = int(cooperative_groups::this_cluster().block_rank());
-    const int gz = blockIdx.z / CL, peers = CL * a.CG, pid = gz * CL + z;
+    const int gz = blockIdx.z, peers = a.CG, pid = gz;
     const int m0 = blockIdx.x * BM, n0 = blockIdx.y * BN;
     const float *Ap = a.A, *Bp = a.B;
-    // K_z of peer pid among P = CL CG: [16 floor(floor(K/16) pid/P), 16 floor(floor(K/16)
+    // K_z of group pid among P = CG: [16 floor(floor(K/16) pid/P), 16 floor(floor(K/16)
     // (pid+1)/P)), the last one ending at K; slice w owns the positions ((k - min K_z) mod 16) / 8
     // = w.
     const int K16 = a.K / BK;
@@ -169,13 +165,9 @@ __global__ void __launch_bounds__(THREADS, 1) simt_carrier_kernel(const __grid_c
                 make_float4(acc[4][jj], acc[5][jj], acc[6][jj], acc[7][jj]);
         }
     }
-    if constexpr (CL > 1) {
-        asm volatile("barrier.cluster.arrive.release.aligned;" ::: "memory");
-        asm volatile("barrier.cluster.wait.acquire.aligned;" ::: "memory");
-    } else
-        __syncthreads();
-    constexpr int SL = BM / CL;
-    const int r0 = z * SL;
+    __syncthreads();
+    constexpr int SL = BM;
+    const int r0 = 0;
     float *O = a.CG > 1 ? a.P + gz * a.sp : a.O;
     const bool full = (m0 + BM <= a.M) && (n0 + BN <= a.N);
     constexpr int U = 8;
@@ -191,15 +183,8 @@ __global__ void __launch_bounds__(THREADS, 1) simt_carrier_kernel(const __grid_c
             in[u] = e < SL * BN && (full || ((m0 + i) < a.M && (n0 + j) < a.N));
             float s = 0.f;
 #pragma unroll
-            for (int r = 0; r < CL; ++r) { // fixed order z' = 0..CL-1, w = 0..SK-1
-                const float *peer = sm;
-                if constexpr (CL > 1)
-                    peer = cooperative_groups::this_cluster().map_shared_rank(sm, r);
-#pragma unroll
-                for (int w = 0; w < SK; ++w)
-                    s += (e < SL * BN) ? peer[size_t(w) * PARK_FLOATS + size_t(j) * PARK_LD + i]
-                                       : 0.f;
-            }
+            for (int w = 0; w < SK; ++w) // fixed order w = 0..SK-1
+                s += (e < SL * BN) ? sm[size_t(w) * PARK_FLOATS + size_t(j) * PARK_LD + i] : 0.f;
             sv[u] = s;
         }
 #pragma unroll
@@ -207,22 +192,27 @@ __global__ void __launch_bounds__(THREADS, 1) simt_carrier_kernel(const __grid_c
             if (in[u])
                 O[go[u]] = sv[u]; // the owner commits once (or its GPU-group slice)
     }
-    if constexpr (CL > 1) {
-        asm volatile("barrier.cluster.arrive.relaxed.aligned;" ::: "memory");
-        asm volatile("barrier.cluster.wait.aligned;" ::: "memory");
-    }
 }
-template <int CL> void launch(const Args &a, cudaStream_t st) {
+// The eight warps of a slice hold two of the 16 column phases of the tile each.
+inline Carrier carrier(int M, int N, int cg) {
+    return Carrier{}
+        .set(GpuLevel, ceildiv(M, BM), ceildiv(N, BN), cg)
+        .set(BlockLevel, 1, SLICE / 32, SK);
+}
+inline void launch(const Args &a, cudaStream_t st) {
     if (!a.M || !a.N)
         return;
     if (a.CG > 1 && (!a.P || a.sp < a.ldo * a.N))
         throw std::runtime_error("no room for the partial slices of the GPU groups");
-    reserve_shared_memory(simt_carrier_kernel<CL>, SMEM);
-    launch_clustered(simt_carrier_kernel<CL>, dim3(ceildiv(a.M, BM), ceildiv(a.N, BN), CL * a.CG),
-                     dim3(SLICE, SK), SMEM, st, dim3(1, 1, CL), a);
+    if ((long long)a.CG * a.CG > (long long)ceildiv(a.M, BM) * ceildiv(a.N, BN))
+        throw std::runtime_error("GPU groups beyond the 2.5D bound of the product");
+    reserve_shared_memory(simt_carrier_kernel, SMEM);
+    simt_carrier_kernel<<<dim3(ceildiv(a.M, BM), ceildiv(a.N, BN), a.CG), dim3(SLICE, SK), SMEM,
+                          st>>>(a);
+    CU(cudaGetLastError());
     if (a.CG > 1) {
         carrier_g_combine<float><<<std::min(1024, ceildiv(a.M * a.N, 256)), 256, 0, st>>>(
-            a.P, a.sp, a.CG, a.O, int(a.ldo), a.N, a.M);
+            a.P, a.sp, a.CG, a.O, int(a.ldo), a.N, a.M, 1, 0);
         CU(cudaGetLastError());
     }
 }
@@ -230,27 +220,23 @@ inline bool aligned16(const void *p, long long ld) {
     return (reinterpret_cast<uintptr_t>(p) % 16 == 0) && (ld % 4 == 0);
 }
 } // namespace simt
-// W(h x q, ldw) = V^T X with c = SK x CL (SK = 2 slices, CL = c / 2 blocks of a cluster), split
-// again over cg groups of blocks whose partial slices go to `part`.
-inline bool simt_w_admits(int c, const float *v, int ldv, const float *x, int ldx, const float *w) {
-    return (c == 2 || c == 4 || c == 8) && simt::aligned16(v, ldv) && simt::aligned16(x, ldx) && w;
+// W(h x q, ldw) = V^T X with the two slices of every block and cg groups of blocks, whose partial
+// slices go to `part`.
+inline bool simt_w_admits(const float *v, int ldv, const float *x, int ldx, const float *w) {
+    return simt::aligned16(v, ldv) && simt::aligned16(x, ldx) && w;
 }
-inline int simt_w_gpu_split(int c, int q, int h, int rows) {
-    const int cl = c / simt::SK;
-    const long long tiles = (long long)ceildiv(h, simt::BM) * ceildiv(q, simt::BN) * cl;
+// Groups for two waves of the GPU, at least 256 rows each, at most `room`, within the 2.5D bound.
+inline int simt_w_groups(int q, int h, int rows, int room) {
+    const long long tiles = (long long)ceildiv(h, simt::BM) * ceildiv(q, simt::BN);
     long long cg = std::max(1LL, 2LL * device_properties().multiProcessorCount / tiles);
-    cg = std::min<long long>({cg, 128, std::max(1, rows / (256 * cl))});
-    return int(std::max(1LL, cg));
+    cg = std::min<long long>({cg, 128, room, std::max(1, rows / 256)});
+    return bounded_groups(tiles, int(std::max(1LL, cg)));
 }
-inline void launch_simt_w(int c, const float *v, int ldv, const float *x, int ldx, float *w,
-                          int ldw, int rows, int h, int q, cudaStream_t st, int cg, float *part) {
+inline Carrier launch_simt_w(const float *v, int ldv, const float *x, int ldx, float *w, int ldw,
+                             int rows, int h, int q, cudaStream_t st, int cg, float *part) {
     const simt::Args a{
         v, ldv, x, ldx, w, ldw, h, q, rows, std::max(1, cg), part, (long long)ldw * q};
-    if (c == 2)
-        simt::launch<1>(a, st);
-    else if (c == 4)
-        simt::launch<2>(a, st);
-    else
-        simt::launch<4>(a, st);
+    simt::launch(a, st);
+    return simt::carrier(h, q, std::max(1, cg));
 }
 } // namespace tqr

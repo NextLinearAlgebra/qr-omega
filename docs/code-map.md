@@ -1,52 +1,73 @@
 # Code map
 
-`reproducers/runner.py` runs the measured presets of `reproducers/presets.json` through the driver
-`benchmarks/qr_omega.cu`, which is built twice: `qr_omega_single` for one GPU and, with MPI, NCCL and NVSHMEM,
-`qr_omega_multi` for the GPUs of a node (one MPI rank per GPU).
+`benchmarks/qr_omega.cu` builds as `qr_omega_single` and, with MPI, paper NCCL and NVSHMEM,
+`qr_omega_multi`. Multi-GPU execution uses one MPI rank per GPU.
 
 ## Factorization path
 
-1. The driver generates the matrix on the GPUs (block-cyclic rows on several GPUs), times `Engine::factor`, and
-   checks the result with `Engine::apply_q`: the residual over column blocks and the orthogonality error on 16
-   vectors.
-2. `plan.hpp` builds the elimination list of Algorithm 1: per panel, one GE of the rows each GPU holds and, across
-   GPUs, one TT elimination of arity P that merges the GPUs' triangles.
-3. `engine.cuh` runs the list. Panels are factored by `panel_cooperative.cuh` (tall panels, rows split among
-   thread blocks, windows and mini-panels) or `panel_register.cuh` (the last panels and the TT merges, columns held
-   in registers). Every panel updates the trailing columns in strips; under look-ahead the strips that release the
-   next panel go first and the far strips overlap its factorization. On one GPU, `aggregate` panels are composed
-   into one transform for the far columns. On several GPUs the TT merge gathers the triangles on the owner of the
-   diagonal block, and its update all-reduces W.
-4. `update.cuh` computes W = V^T X, Z = T^T W and X -= V Z for one strip and chooses the carrier of each product:
-   cuBLAS peers (FP64 and IEEE FP32 W), CUTLASS group carriers (`carrier_cutlass.cuh`), block carriers on CUDA cores
-   (`carrier_block.cuh`), the KAMI-style D carriers (`carrier_kami.cuh`), the SIMT Gram carrier
-   (`carrier_simt.cuh`), and the wgmma kernels of the TF32 modes (`carrier_wgmma.cuh`). Every product runs with
-   c >= 2 peers where its contraction admits the cut; `Tally` counts them.
-5. `transport.cuh` moves data between GPUs: one-sided NVSHMEM publications, the low-latency NCCL `LLBuffer`
-   exchanges, and `ncclAllReduce` for W.
+1. The driver generates a reproducible matrix, times `Engine::factor`, and validates reconstruction
+   over every column plus orthogonality on 16 vectors through reverse replay in `Engine::apply_q`.
+2. `plan.hpp` distributes rows and columns block-cyclically over a GPU grid. Each panel's owning
+   grid column factors local rows; node-level TT merges combine the resulting triangles.
+3. `domains.cuh` implements each GPU's hierarchy: GEQRT tiles, TSQRT chains inside domains and
+   TTQRT between domains. A persistent kernel schedules the nodes and publishes completed column
+   blocks to their consumers. GE/TS/TT reflectors remain in the matrix; scalar taus are retained.
+   Every node is factored by the register kernel of `panel_register.cuh` (`gx_body`), which also
+   factors node-level TT merges; its warps own four columns each and publish them to consumers.
+   Two reusable T/V workspaces serve the panels in flight. Q replay repacks V and rebuilds T by
+   dlarft from reflector overlaps, without retaining every panel's full compact WY factors.
+   With `--panel-format wy`, `householder_reconstruct.cuh` forms the tree's native-precision
+   thin Q down the same GE/TS/TT hierarchy and converts it into standard Householder vectors by
+   modified LU and triangular solves, in one launch: a block per domain follows its path from
+   the node it enters, the nodes publish their Z = T E, and a dedicated block factors the top
+   rows as soon as they exist. This format retains one small T per panel and supports
+   composition into wider updates. Both choices start with the same GE/TS/TT hierarchy.
+4. `engine.cuh` shares those factors along GPU grid rows and schedules updates in strips. Lookahead
+   releases the next panel before starting the far strips. Node TT merges use register-resident
+   Householder panels. Node updates sum partial W where the replication bound permits it; other
+   GPU grids contract gathered operands.
+5. `update.cuh` applies W = V^T X, Z = op(T) W and X -= V Z along the GE/TS/TT tree, reversing the
+   order for Q replay. `tree_update.cuh` fuses updates in all four modes through the arithmetic
+   adapter in `tree_math.cuh`. Segmented carriers support all modes
+   and GPU-level contraction groups. Each actual launch records its `(p_i, p_j, c)` decomposition;
+   `carrier.hpp` checks `c^2 <= p_i p_j` at every machine level.
+6. `paper_collectives.cuh` uses the low-latency NCCL paper's `ncclLLBuffer` protocol for row
+   broadcasts, column sum/max/allgather and ordered pair exchanges. NCCL windows contain protocol
+   buffers and reuse credits. `transport.cuh` uses NVSHMEM with per-peer generations to publish
+   independently produced local triangles into disjoint slots on the merge owner. The merged
+   V/T packets and reconstruction factors use ordered NCCL exchanges. CUDA events preserve
+   dependencies across streams.
 
 ## Options
 
 | Driver option | Meaning |
 | --- | --- |
-| `--mode` | `fp64`, `fp32` (IEEE), `tf32`, or `3xtf32` |
-| `--m`, `--n` | Matrix dimensions |
-| `--b` | Panel width (128 on one GPU, 512 across GPUs) |
-| `--strip` | Columns of a strip of the trailing update |
-| `--depth` | Strips in flight |
-| `--aggregate` | Panels composed into one far update (one GPU) |
-| `--lookahead` | Factor the next panel while the far update runs |
-| `--wc`, `--zc` | Contraction replication c of W and Z (D always uses 2) |
-| `--groups`, `--late-groups`, `--late-rows` | Thread blocks of a cooperative panel, and of panels with fewer rows |
-| `--minipanel`, `--window` | Mini-panel and window widths of a cooperative panel (0: the whole panel) |
-| `--compose-groups` | TF32: groups of blocks of the Gram products of an aggregated T |
-| `--d-tiles` | 3xTF32: output tiles per thread block of the far D |
-| `--reps`, `--output` | Timed repetitions after one warm-up, and the JSON record |
+| `--mode` | `fp64`, `fp32`, `tf32`, or `3xtf32` |
+| `--m`, `--n` | Matrix dimensions, m >= n >= 1 |
+| `--b` | Panel width, at most 64 |
+| `--grid-rows` | Rows of the GPU grid; must divide the GPU count |
+| `--domain-tiles` | Tiles per domain: one GE followed by TS eliminations |
+| `--fan-in` | TT arity between GPU domains, 2 through 4 |
+| `--dc`, `--mc` | Requested domain and merge update replication |
+| `--tree-groups` | Requested groups of blocks for the GPU tree contractions |
+| `--tree-update` | Input staging: `streaming` or `resident` in shared memory, in all four modes |
+| `--panel-format` | Retained `tree` factors or stable reconstructed `wy` factors |
+| `--strip`, `--depth` | Columns per update strip and strips in flight |
+| `--lookahead` | Overlap the next panel with the far update |
+| `--aggregate` | 1 through 16 reconstructed panels per far update; values above 1 require WY and one GPU grid row |
+| `--wc`, `--zc` | Requested W/Z replication for non-fused products |
+| `--d-tiles` | 3×TF32 output tiles per thread block of the far D |
+| `--reps`, `--output` | Timed repetitions after one warmup and JSON output path |
+| `--profile-factor` | CUDA profiler range around the first timed factorization |
 
-## Schedule selection
+## Measurement and validation
 
-`reproducers/runner.py --auto` and `python3 -m planner` take the driver options from a machine profile instead of
-a preset. `machine/probe/machine_probe.cu` measures the GPU and writes the profile; `machine/profile.py` turns it
-into latencies, bandwidths and the law of the vendor product. `planner/schedule.py` defines the admissible
-schedules and the memory inventory of the engine, `planner/model.py` the cost of a factorization, and
-`planner/plan.py` the search; `planner/kernels.json` holds the kernel constants that `planner/calibrate.py` fits.
+The schedules are tuned by hand and kept in `reproducers/presets.json`, one entry per matrix order,
+arithmetic and GPU count, with the driver options and the measured time and errors of the cell.
+`reproducers/runner.py` runs any of them again and checks the result against the recorded
+measurement.
+
+Host contracts run with `python3 -m unittest discover -s tests -v`. Optional GPU CTest cases cover
+GE/TS/TT panels, scaled and rank-deficient inputs, partial panels, updates and Q replay. Run
+`tests/hierarchy_gpu.py --gpus P` and `qr_omega_transport_tests` explicitly inside a multi-GPU
+allocation to validate the distributed hierarchy and both communication backends.

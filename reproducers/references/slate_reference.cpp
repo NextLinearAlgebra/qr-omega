@@ -298,12 +298,13 @@ int main(int argc, char **argv) {
         std::string dtype = argv[1];
         int m = std::stoi(argv[2]), n = std::stoi(argv[3]), nb = std::stoi(argv[4]),
             reps = std::stoi(argv[5]);
-        if ((dtype != "fp32" && dtype != "fp64") || m < 0 || n < 0 || nb < 1 || reps < 1 || p > 4)
+        if ((dtype != "fp32" && dtype != "fp64") || m < 0 || n < 0 || nb < 1 || reps < 1)
             throw std::runtime_error("descriptor");
         int count;
         CU(cudaGetDeviceCount(&count));
         if (count != 1)
-            throw std::runtime_error("use one-gpu-per-rank.sh with exactly one visible device");
+            throw std::runtime_error(
+                "run each rank with one visible GPU (reproducers/references/one-gpu-per-rank.sh)");
         CU(cudaSetDevice(0));
         if (!std::getenv("OMP_NUM_THREADS"))
             omp_set_num_threads(std::max(1, omp_get_num_procs() / p));
