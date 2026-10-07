@@ -129,7 +129,7 @@ class Renderer:
         labels = {
             "time_s": "QR-Ω speedup over reference (×)",
             "residual": "Relative residual (block maximum)",
-            "orthogonality": "Relative Q·Qᵀ inverse error",
+            "orthogonality": "Relative Qᵀ(QX) error",
         }
         ax.set_ylabel(labels[metric])
         if metric == "time_s":

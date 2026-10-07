@@ -32,7 +32,7 @@ FP32. The figures are in `plots/figures`.
 
 | GPUs | Cells | Speedup over the fastest reference |
 | --- | --- | --- |
-| 1 | 81: n = 256 to 131,072, four modes | FP64 1.01–1.93, FP32 0.98–2.24, TF32 1.75–5.31, 3×TF32 1.51–2.73 |
+| 1 | 81: n = 256 to 131,072, four modes | FP64 1.01–1.92, FP32 0.98–2.24, TF32 1.75–5.34, 3×TF32 1.52–2.72 |
 | 2, 3 | 6: n = 229,376, FP32/TF32/3×TF32 | FP32 1.12, TF32 5.71–6.07, 3×TF32 2.13–2.15 |
 | 4 | 25: n = 131,072 to 327,680 | FP64 1.12–1.21, FP32 1.12–1.22, TF32 4.71–5.27, 3×TF32 2.19–2.29 |
 | 8 (2×4 grid) | 27: n = 131,072 to 327,680 | FP64 1.02–1.06, FP32 1.11–1.12, TF32 3.45–4.21, 3×TF32 1.89–1.99 |
@@ -81,9 +81,9 @@ for p in 1 2 3 4 8; do python3 reproducers/runner.py --gpus $p --suite paper --o
 That is 139 cells (81 on one GPU, 3 each on two and three, 25 on four, 27 on eight) and takes about
 six hours, most of it in the largest four- and eight-GPU matrices; `--sizes` and `--modes` select
 subsets, and the default `--suite headlines` runs the cells the paper quotes. Each run checks the
-residual `max_J ‖A_J − (QR)_J‖_F / ‖A_J‖_F` over column blocks of all n columns and the
-orthogonality error `‖Q(QᵀX) − X‖_F / ‖X‖_F`, reports how every product was carried, and fails if it
-is more than 4% slower than its recorded time.
+residual `max_J ‖A_J − (QR)_J‖_F / ‖A_J‖_F` over the 512-column blocks J of all n columns and the
+orthogonality error `‖Qᵀ(QX) − X‖_F / ‖X‖_F` for 16 random vectors X, reports how every product was
+carried, and fails if it is more than 4% slower than its recorded time.
 
 The figures come from the measured cells and the reference measurements
 (`plots/data/references.csv`: cuSOLVER, cuSOLVERMp, MAGMA and SLATE, each tuned for every size;

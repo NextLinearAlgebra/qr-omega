@@ -181,21 +181,22 @@ __global__ void copy_r(const T *a, int lda, T *r, int ldr, int rows, int cols, P
             place.row(row) <= place.col(first + j) ? a[row + size_t(first + j) * lda] : T(0);
     }
 }
-// ||x - y||_F / ||y||_F over the local block.
-template <class T> double relative_difference(const Matrix<T> &x, const Matrix<T> &y) {
-    if (!x.rows || !x.cols)
+// ||x - y||_F / ||y||_F over the local columns [first, first + cols).
+template <class T>
+double relative_difference(const Matrix<T> &x, const Matrix<T> &y, int first, int cols) {
+    if (!x.rows || !cols)
         return 0;
-    const size_t elements = size_t(x.rows) * x.cols;
+    const size_t elements = size_t(x.rows) * cols;
     const int blocks = int(std::min<size_t>(256, (elements + 65535) / 65536));
     Buffer<T> out(size_t(3) * blocks);
-    relative_error<<<blocks, 256>>>(x.a.p, y.a.p, x.rows, x.cols, x.ld, y.ld, out.p);
+    relative_error<<<blocks, 256>>>(x.a.p + size_t(first) * x.ld, y.a.p + size_t(first) * y.ld,
+                                    x.rows, cols, x.ld, y.ld, out.p);
     CU(cudaDeviceSynchronize());
     return relative_error_ratio(out.download());
 }
 
-// Columns checked per round: 512, doubled up to 4096 (the width of the reference adapters' checks)
-// while the two blocks of every GPU fit in half of its free memory. Wider blocks take fewer passes
-// over the retained factors.
+// Columns reconstructed per round: 512, doubled up to 4096 while the two blocks of every GPU fit in
+// half of its free memory. Wider rounds take fewer passes over the retained factors.
 template <class T> int validation_width(const Context &ctx, int rows) {
     size_t free = 0, total = 0;
     CU(cudaMemGetInfo(&free, &total));
@@ -209,9 +210,10 @@ struct Checks {
     int status = 0;
     double residual = 0, orthogonality = 0;
 };
-// The residual is the largest ||A_J - (QR)_J|| / ||A_J|| over blocks J of `block` local columns and
-// over the GPUs, every grid column checking its own blocks; the orthogonality error is
-// ||Q (Q^T X) - X|| / ||X|| for 16 pseudorandom vectors X on every grid column.
+// The residual is the largest ||A_J - (QR)_J|| / ||A_J|| over blocks J of 512 local columns (the
+// block of the cuSOLVER, MAGMA and cuSOLVERMp adapters) and over the GPUs, every grid column
+// checking its own blocks; the orthogonality error is ||Q^T (Q X) - X|| / ||X|| for 16 pseudorandom
+// vectors X on every grid column.
 template <class T>
 Checks validate(Engine<T> &engine, const Matrix<T> &a, const Context &ctx, const Place &place,
                 int block, const double *g) {
@@ -228,8 +230,10 @@ Checks validate(Engine<T> &engine, const Matrix<T> &a, const Context &ctx, const
         }
         st.sync();
         checks.status = std::max(checks.status, engine.apply_q(x, false));
-        const double error = relative_difference(x, reference);
-        checks.residual = std::isfinite(error) ? std::max(checks.residual, error) : INFINITY;
+        for (int j = 0; j < x.cols; j += 512) {
+            const double error = relative_difference(x, reference, j, std::min(512, x.cols - j));
+            checks.residual = std::isfinite(error) ? std::max(checks.residual, error) : INFINITY;
+        }
     }
     Place vectors = place;
     vectors.cols = Cyclic{};
@@ -243,7 +247,7 @@ Checks validate(Engine<T> &engine, const Matrix<T> &a, const Context &ctx, const
     checks.status = std::max(checks.status, engine.apply_q(x, false));
     checks.status = std::max(checks.status, engine.apply_q(x, true));
     checks.residual = ctx.max(checks.residual);
-    checks.orthogonality = ctx.max(relative_difference(x, reference));
+    checks.orthogonality = ctx.max(relative_difference(x, reference, 0, x.cols));
     return checks;
 }
 

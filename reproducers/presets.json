@@ -22,15 +22,15 @@
       "d-tiles": 0,
       "grid-rows": 1
     },
-    "measured_time_s": 0.00037316977977752686,
+    "measured_time_s": 0.0003727208822965622,
     "measured_residual": 9.977940367860736e-16,
     "measured_orthogonality": 1.4192602535363858e-15,
     "provenance": {
       "protocol": "median of the timed repetitions of two validated runs, each after a warm-up",
-      "binary_sha256": "9d909c620cd83ab42d42d49aaebe0f0df9810bc96b97dc78a43f6116e4131367",
+      "binary_sha256": "8c0d34e1e7d1b0cef609a195450da81c94c4319215c38fc62ee7684b5bd1d256",
       "records_sha256": [
-        "2f1451e93c49a7bd41b624890b8db18b14bc6cf1a4092ffb50909b393adcc3f9",
-        "dd0f4d466d875de735483ec028c8dd9f7c4818fb50ffe3b9552bd4d4a850c129"
+        "e5ca7bc1865213773ef7360b91063be29f409e614afc27a9e43be70321ca0788",
+        "36ac236365031fe098766456a21211cda1bafd1b0063a50afa26982e54d3e004"
       ]
     }
   },
@@ -57,15 +57,15 @@
       "d-tiles": 0,
       "grid-rows": 1
     },
-    "measured_time_s": 0.00031386129558086395,
+    "measured_time_s": 0.0003157760947942734,
     "measured_residual": 2.9140620887977527e-07,
     "measured_orthogonality": 3.858134684089566e-07,
     "provenance": {
       "protocol": "median of the timed repetitions of two validated runs, each after a warm-up",
-      "binary_sha256": "9d909c620cd83ab42d42d49aaebe0f0df9810bc96b97dc78a43f6116e4131367",
+      "binary_sha256": "8c0d34e1e7d1b0cef609a195450da81c94c4319215c38fc62ee7684b5bd1d256",
       "records_sha256": [
-        "096cc74c3f9feb044f47bd0c3d7e7a3a0fda1d6a5bc6d5483bd3d158ab22588f",
-        "3870e47a59bb42cc02bd086e8dbae6d559e93fb0d3734e728e7b9a01d3c9f63e"
+        "6de93b941d1b763aaad99a18ca25e59beef37a79fd0e75330900f09a9042aff8",
+        "cc6d92c91057e8c32d752a462e29a60c7c320f0c33b4eab7ff4eea47d9661c8a"
       ]
     }
   },
@@ -92,15 +92,15 @@
       "d-tiles": 0,
       "grid-rows": 1
     },
-    "measured_time_s": 0.0003123842179775238,
+    "measured_time_s": 0.00031314603984355927,
     "measured_residual": 0.000991283461958404,
     "measured_orthogonality": 0.0014384645675454577,
     "provenance": {
       "protocol": "median of the timed repetitions of two validated runs, each after a warm-up",
-      "binary_sha256": "9d909c620cd83ab42d42d49aaebe0f0df9810bc96b97dc78a43f6116e4131367",
+      "binary_sha256": "8c0d34e1e7d1b0cef609a195450da81c94c4319215c38fc62ee7684b5bd1d256",
       "records_sha256": [
-        "3829af65a87c2789c3744606ece8d1c4e147b3287a7960a331776374ae198487",
-        "d2d685e7b8c803b29dcc33957880e5d6fce6f3e33c3b6e7e315a9f6f7b1ba6b2"
+        "1979d31b834eed98a08e8fa8cce3204f02eebe932f85639ace1a13f86bff76f5",
+        "02b0c4165531100eef156c43b5f2ce75f99c8881ba4056b65a285a44404ad4c5"
       ]
     }
   },
@@ -127,15 +127,15 @@
       "d-tiles": 0,
       "grid-rows": 1
     },
-    "measured_time_s": 0.00032362714409828186,
+    "measured_time_s": 0.000319531187415123,
     "measured_residual": 5.672986885283367e-07,
     "measured_orthogonality": 8.020061693642653e-07,
     "provenance": {
       "protocol": "median of the timed repetitions of two validated runs, each after a warm-up",
-      "binary_sha256": "9d909c620cd83ab42d42d49aaebe0f0df9810bc96b97dc78a43f6116e4131367",
+      "binary_sha256": "8c0d34e1e7d1b0cef609a195450da81c94c4319215c38fc62ee7684b5bd1d256",
       "records_sha256": [
-        "74ddaa153477b5383c2f7339a92e63c9a4207905fbcc5bc01bfe6e13cac37586",
-        "d079c78d68a416f2f7238c209941b4d97493db6a803a63f649c5dcfbf2de7f84"
+        "e04b7897ad7a3b0ea1c0f7b59c97724af92a1019d10c44f54d208f0833b22e18",
+        "47d02b39fcdb6eae375a7bc6f9d9e244e8e227d07e542ef4046a046fb1fa21cb"
       ]
     }
   },
@@ -162,15 +162,15 @@
       "d-tiles": 0,
       "grid-rows": 1
     },
-    "measured_time_s": 0.00046783313155174255,
-    "measured_residual": 1.4231611075355114e-15,
-    "measured_orthogonality": 1.8864036175082757e-15,
+    "measured_time_s": 0.00046800822019577026,
+    "measured_residual": 1.4266457517475882e-15,
+    "measured_orthogonality": 1.8872859689169838e-15,
     "provenance": {
       "protocol": "median of the timed repetitions of two validated runs, each after a warm-up",
-      "binary_sha256": "9d909c620cd83ab42d42d49aaebe0f0df9810bc96b97dc78a43f6116e4131367",
+      "binary_sha256": "8c0d34e1e7d1b0cef609a195450da81c94c4319215c38fc62ee7684b5bd1d256",
       "records_sha256": [
-        "0acbb2e3e6b33594b3b97758be181a2616a23857f5cfe0bd16ff1885f33732ce",
-        "6218dd4af9b5d3baa1c697baf44bdd978cde41fd1c0eaf35476e77193e0d3485"
+        "e3b69d5dcadeb2c52e3537092ad47bb50761120db912deb94e4526c2b273c755",
+        "d65ff91b2ea0e5132b30a49a1905d05844594ea84d499ad49bc61d6ba47cc133"
       ]
     }
   },
@@ -197,15 +197,15 @@
       "d-tiles": 0,
       "grid-rows": 1
     },
-    "measured_time_s": 0.0003965403884649277,
-    "measured_residual": 3.787816221709114e-07,
-    "measured_orthogonality": 4.566674314146379e-07,
+    "measured_time_s": 0.0003969818353652954,
+    "measured_residual": 3.7737147527276515e-07,
+    "measured_orthogonality": 4.548046050419977e-07,
     "provenance": {
       "protocol": "median of the timed repetitions of two validated runs, each after a warm-up",
-      "binary_sha256": "9d909c620cd83ab42d42d49aaebe0f0df9810bc96b97dc78a43f6116e4131367",
+      "binary_sha256": "8c0d34e1e7d1b0cef609a195450da81c94c4319215c38fc62ee7684b5bd1d256",
       "records_sha256": [
-        "4a4447a87e9eb21128b1479c25efc42ca1bb1fbade657b73b818adea54f4e9fe",
-        "13339ad6479821eb99f5650a8b9b2fd77f3f27a9baa02f06ffe94517b56dcf8d"
+        "2ce329415201925cb0653554b068dbaf8e4f6d9095b234c76a2b400422a932e0",
+        "077339f36c735f422f303bc1f90dc62e756425e76e8a0a38744f1cdfa612c345"
       ]
     }
   },
@@ -232,15 +232,15 @@
       "d-tiles": 0,
       "grid-rows": 1
     },
-    "measured_time_s": 0.00038132816553115845,
-    "measured_residual": 0.0013213535971222329,
+    "measured_time_s": 0.00038295798003673553,
+    "measured_residual": 0.0013213534141163,
     "measured_orthogonality": 0.00171702772976045,
     "provenance": {
       "protocol": "median of the timed repetitions of two validated runs, each after a warm-up",
-      "binary_sha256": "9d909c620cd83ab42d42d49aaebe0f0df9810bc96b97dc78a43f6116e4131367",
+      "binary_sha256": "8c0d34e1e7d1b0cef609a195450da81c94c4319215c38fc62ee7684b5bd1d256",
       "records_sha256": [
-        "5ba949ba10704f84099e178ebcb10186a8aab25bf43700437585b3cbc5277f8c",
-        "dce0429b90de499cd7133bfcbb52d4057290bc8f0c5c8756cf50cdf8b6b1a0b8"
+        "b254ff5cf701f83ed9dd31c835d53138045f06deea3a33388bc4f78b5136fc24",
+        "9eb3ac31d7103dcde280ea47b3e8bb3de849e11cf5f5914860816f93428aa67f"
       ]
     }
   },
@@ -267,15 +267,15 @@
       "d-tiles": 0,
       "grid-rows": 1
     },
-    "measured_time_s": 0.0004102308303117752,
-    "measured_residual": 7.565508472688461e-07,
-    "measured_orthogonality": 1.0302022848981928e-06,
+    "measured_time_s": 0.0004053078591823578,
+    "measured_residual": 7.589168487436827e-07,
+    "measured_orthogonality": 1.0351946132995592e-06,
     "provenance": {
       "protocol": "median of the timed repetitions of two validated runs, each after a warm-up",
-      "binary_sha256": "9d909c620cd83ab42d42d49aaebe0f0df9810bc96b97dc78a43f6116e4131367",
+      "binary_sha256": "8c0d34e1e7d1b0cef609a195450da81c94c4319215c38fc62ee7684b5bd1d256",
       "records_sha256": [
-        "49d11cd11fd76b193898afb8aad8073c0de416954547d2f8199969ffd1c46744",
-        "ec3a649b76f72bb6f80008c35f5234fb60d0da67a0c8cf18729ac566c5f02a7c"
+        "b9498a50a7592dc34170da73293d0fa0b10d23ffee39cc70be13c5b69b880a59",
+        "e4dcfad18abb7bb73841a61d7a804cdc076eff7f5728502cf5d4138b780d21d0"
       ]
     }
   },
@@ -302,15 +302,15 @@
       "d-tiles": 0,
       "grid-rows": 1
     },
-    "measured_time_s": 0.0008822828531265259,
-    "measured_residual": 1.864188895160096e-15,
-    "measured_orthogonality": 2.38410892485578e-15,
+    "measured_time_s": 0.0008766446262598038,
+    "measured_residual": 1.8727605597049175e-15,
+    "measured_orthogonality": 2.374319169324951e-15,
     "provenance": {
       "protocol": "median of the timed repetitions of two validated runs, each after a warm-up",
-      "binary_sha256": "9d909c620cd83ab42d42d49aaebe0f0df9810bc96b97dc78a43f6116e4131367",
+      "binary_sha256": "8c0d34e1e7d1b0cef609a195450da81c94c4319215c38fc62ee7684b5bd1d256",
       "records_sha256": [
-        "6071fec2194a404610d4506d536f0551775183ed8d1f7194be9a4fe7d83b3961",
-        "b64e576a0b59d147c0daaa2024861eb0bda1598c9abca2af9c7788acdc445f05"
+        "2328157a8d33a8d3b8209b7106b8116462ae3c54e8073f3bec7548ef9db7c117",
+        "d763c6a20c7fdb464acfcc78df6c1ac9f4bd0f27725e2a8f364a8adf98bdae98"
       ]
     }
   },
@@ -337,15 +337,15 @@
       "d-tiles": 0,
       "grid-rows": 1
     },
-    "measured_time_s": 0.0007164943963289261,
-    "measured_residual": 4.840927566781015e-07,
-    "measured_orthogonality": 5.693880968573688e-07,
+    "measured_time_s": 0.0007158089429140091,
+    "measured_residual": 4.88819174580861e-07,
+    "measured_orthogonality": 5.744589591864908e-07,
     "provenance": {
       "protocol": "median of the timed repetitions of two validated runs, each after a warm-up",
-      "binary_sha256": "9d909c620cd83ab42d42d49aaebe0f0df9810bc96b97dc78a43f6116e4131367",
+      "binary_sha256": "8c0d34e1e7d1b0cef609a195450da81c94c4319215c38fc62ee7684b5bd1d256",
       "records_sha256": [
-        "c1ae75e460cb6004d673a149da73568775439c7a7d81bd377634f2cfb6a58182",
-        "10a165d271cbe826142deb1261be7634a6ccfa8fb41436d2db7accf82f9b4031"
+        "7e9f5faac0e2f6bfa169030c79b833e1f111ab004491318c880a7dbbd4c8fcfd",
+        "275bf4b719a69849d625ed8df4f4d4ef7ff546eea20b156e9ad143c41c79567c"
       ]
     }
   },
@@ -372,15 +372,15 @@
       "d-tiles": 0,
       "grid-rows": 1
     },
-    "measured_time_s": 0.0006983987987041473,
-    "measured_residual": 0.0017165103943829851,
-    "measured_orthogonality": 0.0021370170926152303,
+    "measured_time_s": 0.0006893426179885864,
+    "measured_residual": 0.0017186885089283451,
+    "measured_orthogonality": 0.002144107300932471,
     "provenance": {
       "protocol": "median of the timed repetitions of two validated runs, each after a warm-up",
-      "binary_sha256": "9d909c620cd83ab42d42d49aaebe0f0df9810bc96b97dc78a43f6116e4131367",
+      "binary_sha256": "8c0d34e1e7d1b0cef609a195450da81c94c4319215c38fc62ee7684b5bd1d256",
       "records_sha256": [
-        "a1867d59770d8b2fc6a30b8e9784384da2ecd47cd5c5c7a8349685041c889b79",
-        "7cffd69d1e8bc90ad62c161ecd4a365aa5411ad837d3eb7c92d5f9e6e3bc8c8c"
+        "b66c777db3754e684bbd254d1f182455f02abc3383560e2cb218981f32b9d0e5",
+        "2d29d37e84fbc3132bbab5a1289fe17d6bf20daf14605257b14eb231a0c79ab9"
       ]
     }
   },
@@ -407,15 +407,15 @@
       "d-tiles": 0,
       "grid-rows": 1
     },
-    "measured_time_s": 0.0007347427308559418,
-    "measured_residual": 1.1320024488550646e-06,
-    "measured_orthogonality": 1.4809978493228009e-06,
+    "measured_time_s": 0.0007338803261518478,
+    "measured_residual": 1.1283321155605058e-06,
+    "measured_orthogonality": 1.4694480431828022e-06,
     "provenance": {
       "protocol": "median of the timed repetitions of two validated runs, each after a warm-up",
-      "binary_sha256": "9d909c620cd83ab42d42d49aaebe0f0df9810bc96b97dc78a43f6116e4131367",
+      "binary_sha256": "8c0d34e1e7d1b0cef609a195450da81c94c4319215c38fc62ee7684b5bd1d256",
       "records_sha256": [
-        "a67d47551ed4a1cdca3cfb886404a7adf5c407fb7059eae4abb60b6271a2f5c1",
-        "3500923afd5b7504dc93a51539d4cb68acd4e6170201c1d19f7db6fb76fd6c43"
+        "1fca29812baac1fcdf4143bc129ad399dea6fd5e152880d5219a05287ebbeef9",
+        "99aba38cff2993bfdda2f6a08cac12ec8f938076b971f6f379f991a6c0a5ec4a"
       ]
     }
   },
@@ -442,15 +442,15 @@
       "d-tiles": 0,
       "grid-rows": 1
     },
-    "measured_time_s": 0.0012866761535406113,
-    "measured_residual": 2.1441365208566142e-15,
-    "measured_orthogonality": 2.6677192144294536e-15,
+    "measured_time_s": 0.0012900959700345993,
+    "measured_residual": 2.619613533466178e-15,
+    "measured_orthogonality": 2.704096711845499e-15,
     "provenance": {
       "protocol": "median of the timed repetitions of two validated runs, each after a warm-up",
-      "binary_sha256": "9d909c620cd83ab42d42d49aaebe0f0df9810bc96b97dc78a43f6116e4131367",
+      "binary_sha256": "8c0d34e1e7d1b0cef609a195450da81c94c4319215c38fc62ee7684b5bd1d256",
       "records_sha256": [
-        "320a2f1bc33a0dcaa653c9823be20c0716c13281be9ce1dc13da8fbd5e20f758",
-        "6aa92535dcd6ac19c8cf525bc2bdecd5440f686fbcbf9005129174d48f377e9b"
+        "c0d79ef143f2f7cd3c52f752bb928c7ebd7a1710d1c71b7b8c7e04fb370a013c",
+        "7d1846a5c8eeff4b3d4d4f58a495112b6002d6b432cc8646cb26a85086f33b36"
       ]
     }
   },
@@ -477,15 +477,15 @@
       "d-tiles": 0,
       "grid-rows": 1
     },
-    "measured_time_s": 0.0010353773832321167,
-    "measured_residual": 5.228246265060754e-07,
-    "measured_orthogonality": 6.300341159911992e-07,
+    "measured_time_s": 0.0010366998612880707,
+    "measured_residual": 6.152503633947183e-07,
+    "measured_orthogonality": 6.338779607624286e-07,
     "provenance": {
       "protocol": "median of the timed repetitions of two validated runs, each after a warm-up",
-      "binary_sha256": "9d909c620cd83ab42d42d49aaebe0f0df9810bc96b97dc78a43f6116e4131367",
+      "binary_sha256": "8c0d34e1e7d1b0cef609a195450da81c94c4319215c38fc62ee7684b5bd1d256",
       "records_sha256": [
-        "e9babbc8403eedc42135b0a4c4860e6f0118df06b462dc7f6a00a1540d410c30",
-        "f48e485a9b91c0a607c4c085787db5cec55902b4f8ffd5c7bdf9968e236474d2"
+        "caa245312482a5a5047ae1c760c57e237d9e9f4be55186afc62148f39e9e6e8d",
+        "e91d9daae4f9933e0f7f9d29376175875f70af23d3cdb7836398367b92caf596"
       ]
     }
   },
@@ -512,15 +512,15 @@
       "d-tiles": 0,
       "grid-rows": 1
     },
-    "measured_time_s": 0.0009983684867620468,
-    "measured_residual": 0.0018714923111750894,
-    "measured_orthogonality": 0.0023432762369260656,
+    "measured_time_s": 0.0009995531290769577,
+    "measured_residual": 0.0022574553571221385,
+    "measured_orthogonality": 0.002330951136037845,
     "provenance": {
       "protocol": "median of the timed repetitions of two validated runs, each after a warm-up",
-      "binary_sha256": "9d909c620cd83ab42d42d49aaebe0f0df9810bc96b97dc78a43f6116e4131367",
+      "binary_sha256": "8c0d34e1e7d1b0cef609a195450da81c94c4319215c38fc62ee7684b5bd1d256",
       "records_sha256": [
-        "f3dcb2b56763c68818ce6d282e709521d9bf4a2afe05840bfab71a0b2e806800",
-        "f5dfc97090e4bfe453bf84e7d3098665ce0ed67c1ab2e3ace3a204cc9f7660ab"
+        "c352b08d17e72f88bde2bb3ae5dd372c3478c77a2ab4fe1bbe4dc7c1a88a248b",
+        "8eca8ea1f71392567b719c784a7d908f7617fc5e2f6c5e7cdbc779a4e8aa9469"
       ]
     }
   },
@@ -547,15 +547,15 @@
       "d-tiles": 0,
       "grid-rows": 1
     },
-    "measured_time_s": 0.0010750610381364822,
-    "measured_residual": 1.3677184446871403e-06,
-    "measured_orthogonality": 1.8078393824123932e-06,
+    "measured_time_s": 0.001064494252204895,
+    "measured_residual": 1.699804505395008e-06,
+    "measured_orthogonality": 1.787801391201666e-06,
     "provenance": {
       "protocol": "median of the timed repetitions of two validated runs, each after a warm-up",
-      "binary_sha256": "9d909c620cd83ab42d42d49aaebe0f0df9810bc96b97dc78a43f6116e4131367",
+      "binary_sha256": "8c0d34e1e7d1b0cef609a195450da81c94c4319215c38fc62ee7684b5bd1d256",
       "records_sha256": [
-        "c64ca3eadc5384abc8d9b174760377b5564f9a9f4bdfb7abf02f755dd86e9add",
-        "fceb2b293473bc213ca63136900fc3cc1c420ce1d1b3a85d2d7343d44a70bfa2"
+        "a0b6023accc437cd1012fc3e2df6ef122b58a9cd9a41fe7284ae4c2b3720cb11",
+        "a534bfc93da4b0cbbdd747dcd795e7e8b401f2fba1dd20e53d0f26a7780074cf"
       ]
     }
   },
@@ -582,15 +582,15 @@
       "d-tiles": 0,
       "grid-rows": 1
     },
-    "measured_time_s": 0.0021934006363153458,
-    "measured_residual": 2.6368548144183537e-15,
-    "measured_orthogonality": 3.2656125191517487e-15,
+    "measured_time_s": 0.0021907780319452286,
+    "measured_residual": 3.098497198810692e-15,
+    "measured_orthogonality": 3.271809235027945e-15,
     "provenance": {
       "protocol": "median of the timed repetitions of two validated runs, each after a warm-up",
-      "binary_sha256": "9d909c620cd83ab42d42d49aaebe0f0df9810bc96b97dc78a43f6116e4131367",
+      "binary_sha256": "8c0d34e1e7d1b0cef609a195450da81c94c4319215c38fc62ee7684b5bd1d256",
       "records_sha256": [
-        "6feb6b91c42dbb6a3c6004a6f06deeec16647627176f18c0e0335bf18bc9aa7d",
-        "20233a5d2d0f40f1cef85bc533e2d017eacf21416df0ac7e0edff8e8ec71524e"
+        "a1c7896d207331170d0476813692925d4acdb070a1f32b0ebf77dc1b1c5bfbd6",
+        "fa1d56370ee461e298a5720792020fdde4871fbfe12c347e12f68efba033d861"
       ]
     }
   },
@@ -617,15 +617,15 @@
       "d-tiles": 0,
       "grid-rows": 1
     },
-    "measured_time_s": 0.0017530228942632675,
-    "measured_residual": 6.732975279411692e-07,
-    "measured_orthogonality": 7.832716388928261e-07,
+    "measured_time_s": 0.0017606709152460098,
+    "measured_residual": 7.77595193616425e-07,
+    "measured_orthogonality": 7.931925405398387e-07,
     "provenance": {
       "protocol": "median of the timed repetitions of two validated runs, each after a warm-up",
-      "binary_sha256": "9d909c620cd83ab42d42d49aaebe0f0df9810bc96b97dc78a43f6116e4131367",
+      "binary_sha256": "8c0d34e1e7d1b0cef609a195450da81c94c4319215c38fc62ee7684b5bd1d256",
       "records_sha256": [
-        "cb1f4fca372167819640111cd9f4ed3219a71d11b19a4fa8baacaddcb75b1aa1",
-        "e2f88b266904b8d16aca64c08bba67be79822f94cc99099030a1daa401aa1652"
+        "802cb9cf2547ac68719e4bdb6dae7d162a906e71ab33356d565f9eee1629b59f",
+        "d0245106996815193b9293f1aa7737b3996e665d0b6cdcdc351efa82dfede064"
       ]
     }
   },
@@ -652,15 +652,15 @@
       "d-tiles": 0,
       "grid-rows": 1
     },
-    "measured_time_s": 0.001680104061961174,
-    "measured_residual": 0.0023374424928397012,
-    "measured_orthogonality": 0.002873990490245045,
+    "measured_time_s": 0.0016874074935913086,
+    "measured_residual": 0.002716282986281784,
+    "measured_orthogonality": 0.00284112975788253,
     "provenance": {
       "protocol": "median of the timed repetitions of two validated runs, each after a warm-up",
-      "binary_sha256": "9d909c620cd83ab42d42d49aaebe0f0df9810bc96b97dc78a43f6116e4131367",
+      "binary_sha256": "8c0d34e1e7d1b0cef609a195450da81c94c4319215c38fc62ee7684b5bd1d256",
       "records_sha256": [
-        "6ee5008c823023a7f86d8dc3018f1b23786bd10030de5aa5819fbb79b49d6d08",
-        "f40e15535bf09d37088401057084328ef047b71d92f9592f18e6d5c2e3f48c47"
+        "365537f5b0eb68c0a38998ba86a5e19fa2395cdac06071a77ba12c06e15460af",
+        "a2229fa453716618d4d3aee3f259bbe729cf3830204c5fd254f8a9492ab6b6a9"
       ]
     }
   },
@@ -687,15 +687,15 @@
       "d-tiles": 0,
       "grid-rows": 1
     },
-    "measured_time_s": 0.001801012083888054,
-    "measured_residual": 1.9292830045156424e-06,
-    "measured_orthogonality": 2.5314470223745433e-06,
+    "measured_time_s": 0.0018061473965644836,
+    "measured_residual": 2.3023695723896618e-06,
+    "measured_orthogonality": 2.518345342695575e-06,
     "provenance": {
       "protocol": "median of the timed repetitions of two validated runs, each after a warm-up",
-      "binary_sha256": "9d909c620cd83ab42d42d49aaebe0f0df9810bc96b97dc78a43f6116e4131367",
+      "binary_sha256": "8c0d34e1e7d1b0cef609a195450da81c94c4319215c38fc62ee7684b5bd1d256",
       "records_sha256": [
-        "6113d43a6aaa4b13f8d97a6519da358933e6965557194dec0baf07ef948ff810",
-        "07f4e70ff6d1c611e1488c7293c3dcf970b155ade5253a9d7bb5dc5d055084d5"
+        "993b178c578c737b2dbc4f850dd4b09d6546ccc849979427311f422a586ff71b",
+        "4f0b8f2275e8af8b6eaf84d9a9ae8b525b3084f7808fc7d64a1bc6e844a9b96b"
       ]
     }
   },
@@ -723,15 +723,15 @@
       "grid-rows": 1,
       "lookahead": true
     },
-    "measured_time_s": 0.0036213472485542297,
-    "measured_residual": 2.682644758477884e-15,
-    "measured_orthogonality": 3.3080361927923794e-15,
+    "measured_time_s": 0.003623286262154579,
+    "measured_residual": 3.222485145184877e-15,
+    "measured_orthogonality": 3.302126423674655e-15,
     "provenance": {
       "protocol": "median of the timed repetitions of two validated runs, each after a warm-up",
-      "binary_sha256": "9d909c620cd83ab42d42d49aaebe0f0df9810bc96b97dc78a43f6116e4131367",
+      "binary_sha256": "8c0d34e1e7d1b0cef609a195450da81c94c4319215c38fc62ee7684b5bd1d256",
       "records_sha256": [
-        "8ed670d4a509ea6b86fbae0909d4888f9627479a524ffa8d5da959f21ed1db2c",
-        "a4060dc5114bf3234290facb1bc240dceb8608bd6086672fa95e5d4f0eb5425a"
+        "895ee328c4e2c32485856bd9aec8e6e48097e0373e05ae461ddade90faf64e0f",
+        "e70e5f5c2f5b1ee2ecb73c1b2225f0b1161c8fbb0e022ee77e7320f64b7a8e6a"
       ]
     }
   },
@@ -758,15 +758,15 @@
       "d-tiles": 0,
       "grid-rows": 1
     },
-    "measured_time_s": 0.0029850341379642487,
-    "measured_residual": 8.084612753371785e-07,
-    "measured_orthogonality": 9.717124190223612e-07,
+    "measured_time_s": 0.002989940345287323,
+    "measured_residual": 9.551942498034414e-07,
+    "measured_orthogonality": 9.577142249893437e-07,
     "provenance": {
       "protocol": "median of the timed repetitions of two validated runs, each after a warm-up",
-      "binary_sha256": "9d909c620cd83ab42d42d49aaebe0f0df9810bc96b97dc78a43f6116e4131367",
+      "binary_sha256": "8c0d34e1e7d1b0cef609a195450da81c94c4319215c38fc62ee7684b5bd1d256",
       "records_sha256": [
-        "04bee009460565a5a64d9d8cf1311ece2dc920569342a3a2cd4d2db7a98f8752",
-        "2dc7e3480db87cd66050268f0b46c4c782f5421e4088891196b29241bfd8e66c"
+        "45a78dd54056aee9a5142ba5ebdf9719629c7ef9a9e77f85c24b088e2dd2c3b3",
+        "5e46af1ddb35e2383930a487b7f4092c356c430b611a025f9bba78b5cc9414a3"
       ]
     }
   },
@@ -793,15 +793,15 @@
       "d-tiles": 0,
       "grid-rows": 1
     },
-    "measured_time_s": 0.002810092642903328,
-    "measured_residual": 0.0027984019942924885,
-    "measured_orthogonality": 0.003418362594195513,
+    "measured_time_s": 0.002845192328095436,
+    "measured_residual": 0.0033391906627984573,
+    "measured_orthogonality": 0.003383290160738219,
     "provenance": {
       "protocol": "median of the timed repetitions of two validated runs, each after a warm-up",
-      "binary_sha256": "9d909c620cd83ab42d42d49aaebe0f0df9810bc96b97dc78a43f6116e4131367",
+      "binary_sha256": "8c0d34e1e7d1b0cef609a195450da81c94c4319215c38fc62ee7684b5bd1d256",
       "records_sha256": [
-        "3ac5f1bd719190b019c94b2a733b6798373da7bbddeff6c4abba0352abcbeaca",
-        "5a43676f90549bef656cdbdde40c253f15348d0b8dbf314a3307e1fa9b7bced6"
+        "73665f73f600356710c897acf4ff05d7bedad8e9672198139313321a0b374225",
+        "4a249482a294fb13682f7c100e670194d28a66f3e06b5c08ed778dab2968192c"
       ]
     }
   },
@@ -828,15 +828,15 @@
       "d-tiles": 0,
       "grid-rows": 1
     },
-    "measured_time_s": 0.0030673127621412277,
-    "measured_residual": 2.5954856795211487e-06,
-    "measured_orthogonality": 3.4946701958344183e-06,
+    "measured_time_s": 0.0030668023973703384,
+    "measured_residual": 3.35777831457603e-06,
+    "measured_orthogonality": 3.4578327236234747e-06,
     "provenance": {
       "protocol": "median of the timed repetitions of two validated runs, each after a warm-up",
-      "binary_sha256": "9d909c620cd83ab42d42d49aaebe0f0df9810bc96b97dc78a43f6116e4131367",
+      "binary_sha256": "8c0d34e1e7d1b0cef609a195450da81c94c4319215c38fc62ee7684b5bd1d256",
       "records_sha256": [
-        "fa3bed8ed0630425baa163a3eb3f390ce5d0797b9a53c73e192687caf76ae0e7",
-        "4b6701ff6cd46991ef5dca954dfa08306e4d76b7b63fbbcde5a9905b55b5857c"
+        "d6fffad7f21e91fb754cd7be112a08aa02a6da18c8909eec5d23c7ff00df0197",
+        "12b30ed42d3229c8f5d699262f0c1dc69a1d8c1117f5d2ecf4f9f2514130c8cb"
       ]
     }
   },
@@ -864,15 +864,15 @@
       "grid-rows": 1,
       "lookahead": true
     },
-    "measured_time_s": 0.005300838500261307,
-    "measured_residual": 3.1301294707136686e-15,
-    "measured_orthogonality": 3.846087611457277e-15,
+    "measured_time_s": 0.005312370136380196,
+    "measured_residual": 3.8014356517583785e-15,
+    "measured_orthogonality": 3.852963032285768e-15,
     "provenance": {
       "protocol": "median of the timed repetitions of two validated runs, each after a warm-up",
-      "binary_sha256": "9d909c620cd83ab42d42d49aaebe0f0df9810bc96b97dc78a43f6116e4131367",
+      "binary_sha256": "8c0d34e1e7d1b0cef609a195450da81c94c4319215c38fc62ee7684b5bd1d256",
       "records_sha256": [
-        "5a6018531093492fd366f236c52fc99631748550ddbc9291a53f4a59bdbfe3ae",
-        "29e93fda8151abe0e13aa81788bfe064f69cf02b474526b2e5310bc5384c76cd"
+        "cb037f9430383fd84a5e30efe79687d0a85a7465da95bbe0e275ae1ae010b142",
+        "05766bf93ee0053e9242d0e8857c57e60ddb62420589372311131121465ef51b"
       ]
     }
   },
@@ -900,15 +900,15 @@
       "grid-rows": 1,
       "lookahead": true
     },
-    "measured_time_s": 0.0046395715326070786,
-    "measured_residual": 9.815716592078871e-07,
-    "measured_orthogonality": 1.182466183055472e-06,
+    "measured_time_s": 0.004651959985494614,
+    "measured_residual": 1.1871697326104028e-06,
+    "measured_orthogonality": 1.1840531833372103e-06,
     "provenance": {
       "protocol": "median of the timed repetitions of two validated runs, each after a warm-up",
-      "binary_sha256": "9d909c620cd83ab42d42d49aaebe0f0df9810bc96b97dc78a43f6116e4131367",
+      "binary_sha256": "8c0d34e1e7d1b0cef609a195450da81c94c4319215c38fc62ee7684b5bd1d256",
       "records_sha256": [
-        "5b6fb1606f8adfc6b55f8d5c1ed6dfbe3021028fb4e40ca0bb802da97ebdc4bb",
-        "e85970559930e909136f77369cee79fba481d4125febb477bbdc7d9bfc2dc2a1"
+        "9c0bd094d435d98f0aa6447f08a60e26b513f8eb186f6bb547bbb94fe20306f3",
+        "1d1fa8303d477dc55adcc560813114aa495c6ed1c2170d45c0a36dfca78e1070"
       ]
     }
   },
@@ -936,15 +936,15 @@
       "grid-rows": 1,
       "lookahead": true
     },
-    "measured_time_s": 0.004282299429178238,
-    "measured_residual": 0.003237046437085168,
-    "measured_orthogonality": 0.003950895905960385,
+    "measured_time_s": 0.004276294261217117,
+    "measured_residual": 0.003908436022664522,
+    "measured_orthogonality": 0.003939192742752665,
     "provenance": {
       "protocol": "median of the timed repetitions of two validated runs, each after a warm-up",
-      "binary_sha256": "9d909c620cd83ab42d42d49aaebe0f0df9810bc96b97dc78a43f6116e4131367",
+      "binary_sha256": "8c0d34e1e7d1b0cef609a195450da81c94c4319215c38fc62ee7684b5bd1d256",
       "records_sha256": [
-        "3bc833df075dcaff3d51528980e629d084e615744021a8c08b49c22ac39ab748",
-        "ca56d68cf026c11c81cc051b58ee413593520199683771d65bbdc33fb310f4ff"
+        "ece129299846442b3eb3d4f4d12557e4d9e5c18c1e36458e5062b0cbc5f9a15a",
+        "b688241661c31510c59040d82001ef3f99517001becc73d7994a7eddafb35bf4"
       ]
     }
   },
@@ -971,15 +971,15 @@
       "d-tiles": 0,
       "grid-rows": 1
     },
-    "measured_time_s": 0.004619143903255463,
-    "measured_residual": 3.4293148558498452e-06,
-    "measured_orthogonality": 4.634424761474285e-06,
+    "measured_time_s": 0.004659488797187805,
+    "measured_residual": 4.518404068768966e-06,
+    "measured_orthogonality": 4.631240834782122e-06,
     "provenance": {
       "protocol": "median of the timed repetitions of two validated runs, each after a warm-up",
-      "binary_sha256": "9d909c620cd83ab42d42d49aaebe0f0df9810bc96b97dc78a43f6116e4131367",
+      "binary_sha256": "8c0d34e1e7d1b0cef609a195450da81c94c4319215c38fc62ee7684b5bd1d256",
       "records_sha256": [
-        "fff13d92f5cd1f56bfe8e07f17c13be053bcb0a57ba936670a9f98b536655d97",
-        "26f3da7f93ed5abd542d5f99bedb725f4650d0695f0372f49df8c0965cb284bc"
+        "0148b3a145b89100d47adf89e1b091fa71a522ed4cd1a117c933e4955d9596a8",
+        "71d5b75555af5bd8f91c4465e2fe2170ae1fb546ad011d9d2a1e255e7d5e8566"
       ]
     }
   },
@@ -1007,15 +1007,15 @@
       "grid-rows": 1,
       "lookahead": true
     },
-    "measured_time_s": 0.009525749832391739,
-    "measured_residual": 3.715024332044575e-15,
-    "measured_orthogonality": 4.565529581027277e-15,
+    "measured_time_s": 0.009521381929516792,
+    "measured_residual": 4.539496518294765e-15,
+    "measured_orthogonality": 4.558672136263996e-15,
     "provenance": {
       "protocol": "median of the timed repetitions of two validated runs, each after a warm-up",
-      "binary_sha256": "9d909c620cd83ab42d42d49aaebe0f0df9810bc96b97dc78a43f6116e4131367",
+      "binary_sha256": "8c0d34e1e7d1b0cef609a195450da81c94c4319215c38fc62ee7684b5bd1d256",
       "records_sha256": [
-        "5e0f832f5d79ea133a08e1bfab8ab26434d15c4b23a26a33f57153874ae19061",
-        "383561d2be276346ddb00b6b0b8b496f6eb9f6d1e7929132508550adcd3be141"
+        "73c8990aa2823ea024fe16652c402ef7dce583a0c3feca7a8589a5bc45e98864",
+        "1c9e2af478399c079de802a9ea4df57de7b6c2a45dad15aa1e3f194e2431b569"
       ]
     }
   },
@@ -1043,15 +1043,15 @@
       "grid-rows": 1,
       "lookahead": true
     },
-    "measured_time_s": 0.007969425991177559,
-    "measured_residual": 1.1804525254570927e-06,
-    "measured_orthogonality": 1.4489610678615614e-06,
+    "measured_time_s": 0.007956258952617645,
+    "measured_residual": 1.4612320787317907e-06,
+    "measured_orthogonality": 1.4426220092333977e-06,
     "provenance": {
       "protocol": "median of the timed repetitions of two validated runs, each after a warm-up",
-      "binary_sha256": "9d909c620cd83ab42d42d49aaebe0f0df9810bc96b97dc78a43f6116e4131367",
+      "binary_sha256": "8c0d34e1e7d1b0cef609a195450da81c94c4319215c38fc62ee7684b5bd1d256",
       "records_sha256": [
-        "b4733857deadf138a615a0d44b9df21bf3c04bec2223918771662ec6ad55b024",
-        "e8e698dc84809900d41f4515fe53f7744965747d6b726daad1e57804ce611933"
+        "4fb24ea14dc4fe2c3f0739479748b2883990f7d953a8a76cddc8df76b7698ae8",
+        "a89d69df1c6554792fb8505c48fe1fec6911748f477bf10ec4ccb5f677167ffb"
       ]
     }
   },
@@ -1079,15 +1079,15 @@
       "grid-rows": 1,
       "lookahead": true
     },
-    "measured_time_s": 0.007490681484341621,
-    "measured_residual": 0.003803627086301457,
-    "measured_orthogonality": 0.004650795410471822,
+    "measured_time_s": 0.007491657510399818,
+    "measured_residual": 0.004611175692808349,
+    "measured_orthogonality": 0.004624835882988651,
     "provenance": {
       "protocol": "median of the timed repetitions of two validated runs, each after a warm-up",
-      "binary_sha256": "9d909c620cd83ab42d42d49aaebe0f0df9810bc96b97dc78a43f6116e4131367",
+      "binary_sha256": "8c0d34e1e7d1b0cef609a195450da81c94c4319215c38fc62ee7684b5bd1d256",
       "records_sha256": [
-        "dbb7a6cc6325fc1d42114807288cbd8228cb6ab1f5b81ec115a57014e0b58a72",
-        "3f0c148ac13247d701e3c28b69d503035fac2e7a9e000115a0ae0a8511c80f69"
+        "96b462abd0369f0fb1714582b8711984b3ca06d74c03affcc13fa278b441e6da",
+        "fdb5b3830b64a15a1080fab368bff2617eb8806a674deff1ea10831c7df6b418"
       ]
     }
   },
@@ -1115,15 +1115,15 @@
       "grid-rows": 1,
       "lookahead": true
     },
-    "measured_time_s": 0.008371414616703987,
-    "measured_residual": 4.706011958566118e-06,
-    "measured_orthogonality": 6.4071623345513585e-06,
+    "measured_time_s": 0.008391888812184334,
+    "measured_residual": 6.37554770045406e-06,
+    "measured_orthogonality": 6.3978272424584535e-06,
     "provenance": {
       "protocol": "median of the timed repetitions of two validated runs, each after a warm-up",
-      "binary_sha256": "9d909c620cd83ab42d42d49aaebe0f0df9810bc96b97dc78a43f6116e4131367",
+      "binary_sha256": "8c0d34e1e7d1b0cef609a195450da81c94c4319215c38fc62ee7684b5bd1d256",
       "records_sha256": [
-        "67ec03ce67f34a32d5df330d00a9ca9a655e98edc0a5e0fb1d26c5a4a3443cf9",
-        "3476dd3579b4f05f26a675f03239ce1eea60a19e94d33c137f84898654bcb97c"
+        "074ff27c3c12f3b227bca88371eacfa0ccbab330f651093428d6bccf8ae980bc",
+        "eaa9666c9c9da875b0cd7723e1f3622def54529c6c17178c1d018b90a4b7de45"
       ]
     }
   },
@@ -1151,15 +1151,15 @@
       "grid-rows": 1,
       "lookahead": true
     },
-    "measured_time_s": 0.016200553625822067,
-    "measured_residual": 5.165377211576753e-15,
-    "measured_orthogonality": 6.308320587094902e-15,
+    "measured_time_s": 0.016246674582362175,
+    "measured_residual": 6.3144706175288444e-15,
+    "measured_orthogonality": 6.352624097365528e-15,
     "provenance": {
       "protocol": "median of the timed repetitions of two validated runs, each after a warm-up",
-      "binary_sha256": "9d909c620cd83ab42d42d49aaebe0f0df9810bc96b97dc78a43f6116e4131367",
+      "binary_sha256": "8c0d34e1e7d1b0cef609a195450da81c94c4319215c38fc62ee7684b5bd1d256",
       "records_sha256": [
-        "f278c7d8dfefc8fe458ad5188ba82c3a6d7b706fdf2ca0ebccbc308938add485",
-        "8634988f8e73a60364245a71afbdf93a3658a8533e93bc224c619c2f1804595f"
+        "554e213bf5d38bfb41d7f9c2c0a617907674a93fb547c67f037a7e2044df6818",
+        "cb4394b060332a493a20f34743699c5798ce30a5d62a3437122e1e69a45bede0"
       ]
     }
   },
@@ -1187,15 +1187,15 @@
       "grid-rows": 1,
       "lookahead": true
     },
-    "measured_time_s": 0.013985440135002136,
-    "measured_residual": 1.471927374061385e-06,
-    "measured_orthogonality": 1.8326980162052946e-06,
+    "measured_time_s": 0.013987017795443535,
+    "measured_residual": 1.861911168205977e-06,
+    "measured_orthogonality": 1.8319611329084602e-06,
     "provenance": {
       "protocol": "median of the timed repetitions of two validated runs, each after a warm-up",
-      "binary_sha256": "9d909c620cd83ab42d42d49aaebe0f0df9810bc96b97dc78a43f6116e4131367",
+      "binary_sha256": "8c0d34e1e7d1b0cef609a195450da81c94c4319215c38fc62ee7684b5bd1d256",
       "records_sha256": [
-        "4583780efe115945826b672557fc305847917b1cddd1b305fb12b765a05edf83",
-        "19b1ea3a24c7c90af0747ebaaaa606768c2c964b8d4833605606025c412ac6eb"
+        "aba19dad999766dbf510d743a6aa6929d71ecf03b44630a44abc5c067dcd50fb",
+        "0908a7302860e8f79caef3e42f8827a4c2feac0aebb785a86d49a73653ab4b4b"
       ]
     }
   },
@@ -1223,15 +1223,15 @@
       "grid-rows": 1,
       "lookahead": true
     },
-    "measured_time_s": 0.012946462258696556,
-    "measured_residual": 0.0044638371036489965,
-    "measured_orthogonality": 0.005449236866687789,
+    "measured_time_s": 0.012965641915798187,
+    "measured_residual": 0.005428290283987832,
+    "measured_orthogonality": 0.00548069022390211,
     "provenance": {
       "protocol": "median of the timed repetitions of two validated runs, each after a warm-up",
-      "binary_sha256": "9d909c620cd83ab42d42d49aaebe0f0df9810bc96b97dc78a43f6116e4131367",
+      "binary_sha256": "8c0d34e1e7d1b0cef609a195450da81c94c4319215c38fc62ee7684b5bd1d256",
       "records_sha256": [
-        "2aa900d11aa84c3dbd19c4d8dcaf9f557206c2af587d03988392961cc8cb3bf4",
-        "fe068032cc92281da6ce7b8fa1aff9bde3e646b39d8b0199d843f7e833faf5e9"
+        "be73f7f6e4ec1b21a0a218d5a90f6ed20f15cc8f910de55d1d674aa188c013aa",
+        "7e6b0070b2409d163ae969b3ed17bcaee01d3c2b8472c6bac55d7e2c9d403a4f"
       ]
     }
   },
@@ -1259,15 +1259,15 @@
       "grid-rows": 1,
       "lookahead": true
     },
-    "measured_time_s": 0.015040665864944458,
-    "measured_residual": 6.377089472679226e-06,
-    "measured_orthogonality": 8.813610124526375e-06,
+    "measured_time_s": 0.014991723001003265,
+    "measured_residual": 8.751805862593507e-06,
+    "measured_orthogonality": 8.800410711229526e-06,
     "provenance": {
       "protocol": "median of the timed repetitions of two validated runs, each after a warm-up",
-      "binary_sha256": "9d909c620cd83ab42d42d49aaebe0f0df9810bc96b97dc78a43f6116e4131367",
+      "binary_sha256": "8c0d34e1e7d1b0cef609a195450da81c94c4319215c38fc62ee7684b5bd1d256",
       "records_sha256": [
-        "a23663bf52e551f2f6761afd6dedc2e003a84eb787251014627263a0a2c721c2",
-        "7bee16ce508d24648873849bd07bc544b6d374997ef9090cb48478fb745746ea"
+        "9ecf93d99468e73bbf84724443f2cc9d731ac0afd141e4ccd0fef00d0963e703",
+        "7bfede7fae62073159787385c83635d1c14a0c1d0d9aff74c4894a72b240ada2"
       ]
     }
   },
@@ -1307,15 +1307,15 @@
       "tail-tree-update": "resident",
       "tail-lookahead": true
     },
-    "measured_time_s": 0.029305072501301765,
-    "measured_residual": 4.816776315277409e-15,
-    "measured_orthogonality": 4.500766870017192e-15,
+    "measured_time_s": 0.029715977609157562,
+    "measured_residual": 5.017184955192242e-15,
+    "measured_orthogonality": 4.532322506671931e-15,
     "provenance": {
       "protocol": "median of the timed repetitions of two validated runs, each after a warm-up",
-      "binary_sha256": "9d909c620cd83ab42d42d49aaebe0f0df9810bc96b97dc78a43f6116e4131367",
+      "binary_sha256": "8c0d34e1e7d1b0cef609a195450da81c94c4319215c38fc62ee7684b5bd1d256",
       "records_sha256": [
-        "de8aa3b4dbd76c6ebaf36f645fb9eab441c8b71adc9c775b3bb05e744541e8e4",
-        "ba2c37d35072796cd540de8d120652b5606dd67cdf65ad136bdc6b9e68b45642"
+        "db08710c9522654f1a70afb895297373b6315411c84189efacb060ce0459e38c",
+        "51fee7cb2e463e692103106aefb5ad579e4b62be88a6f1fe9a574fe7c0b1779e"
       ]
     }
   },
@@ -1343,15 +1343,15 @@
       "grid-rows": 1,
       "lookahead": true
     },
-    "measured_time_s": 0.02502491883933544,
-    "measured_residual": 1.3947024782512351e-06,
-    "measured_orthogonality": 8.96155273333449e-07,
+    "measured_time_s": 0.025079287588596344,
+    "measured_residual": 1.4391090449946141e-06,
+    "measured_orthogonality": 8.967241161803164e-07,
     "provenance": {
       "protocol": "median of the timed repetitions of two validated runs, each after a warm-up",
-      "binary_sha256": "9d909c620cd83ab42d42d49aaebe0f0df9810bc96b97dc78a43f6116e4131367",
+      "binary_sha256": "8c0d34e1e7d1b0cef609a195450da81c94c4319215c38fc62ee7684b5bd1d256",
       "records_sha256": [
-        "a77731a6a93d888b8f95b1631a6574de9e4da7e6909f055876f2f655017f667d",
-        "1738e6219bf228c8db14a3354cb0f176de8e1877b75e351e1cbfa23259da44c1"
+        "4483f5d84ceb24f7321a19e6f871e7af39764aa301d8eb08fcd5a9c8b1b78613",
+        "a91855654f7bb9f3fc064bc2112de1f5236b0d559e68bddd98495f7234d66939"
       ]
     }
   },
@@ -1391,15 +1391,15 @@
       "tail-tree-update": "resident",
       "tail-lookahead": true
     },
-    "measured_time_s": 0.020416630432009697,
-    "measured_residual": 0.00362434275187322,
-    "measured_orthogonality": 0.0037945520146812164,
+    "measured_time_s": 0.020504839718341827,
+    "measured_residual": 0.003802613142571524,
+    "measured_orthogonality": 0.0038056060434424528,
     "provenance": {
       "protocol": "median of the timed repetitions of two validated runs, each after a warm-up",
-      "binary_sha256": "9d909c620cd83ab42d42d49aaebe0f0df9810bc96b97dc78a43f6116e4131367",
+      "binary_sha256": "8c0d34e1e7d1b0cef609a195450da81c94c4319215c38fc62ee7684b5bd1d256",
       "records_sha256": [
-        "144e3395d955fe17c230401a91d23e48d5333d498ad764ae3ae0eaef86c2e2a2",
-        "000f7e56ee233a148c514f3a7490abee897a42c4c1330368c4dc383dcc145c23"
+        "65f70eb2537e3a173d377a576f90f6db9bd112f85084318fc60b793c33b53c10",
+        "9d300ad59a5fd0a3f2bca2918b0fb8e7c78ef0f1d1601d9580f832d7174b7577"
       ]
     }
   },
@@ -1438,15 +1438,15 @@
       "tail-tree-groups": 1,
       "tail-tree-update": "resident"
     },
-    "measured_time_s": 0.02203691378235817,
-    "measured_residual": 6.6363129488740595e-06,
-    "measured_orthogonality": 5.075295611187284e-06,
+    "measured_time_s": 0.021951906383037567,
+    "measured_residual": 7.088288276977367e-06,
+    "measured_orthogonality": 5.0927325682140435e-06,
     "provenance": {
       "protocol": "median of the timed repetitions of two validated runs, each after a warm-up",
-      "binary_sha256": "9d909c620cd83ab42d42d49aaebe0f0df9810bc96b97dc78a43f6116e4131367",
+      "binary_sha256": "8c0d34e1e7d1b0cef609a195450da81c94c4319215c38fc62ee7684b5bd1d256",
       "records_sha256": [
-        "a06f96c9c6678097ba1a2fe59c54ae199c9f0e2fbb6b46eddf513bf95f799608",
-        "4b691acb9805776879e47c8c23865429511e55103bf51baf5269baf5d2768aec"
+        "5f6af0cbb09348babf53c30fea53b77b13bab19e86b6d5eb4ea0337011892e0b",
+        "703647b2e45ce9d9878407251e16722a973b59b0b846abcc5f2550ddd017c3a9"
       ]
     }
   },
@@ -1486,15 +1486,15 @@
       "tail-tree-update": "resident",
       "tail-lookahead": true
     },
-    "measured_time_s": 0.04477611929178238,
-    "measured_residual": 4.590993152552059e-15,
-    "measured_orthogonality": 4.165214530867255e-15,
+    "measured_time_s": 0.044965725392103195,
+    "measured_residual": 5.237089270100151e-15,
+    "measured_orthogonality": 4.1324609528026216e-15,
     "provenance": {
       "protocol": "median of the timed repetitions of two validated runs, each after a warm-up",
-      "binary_sha256": "9d909c620cd83ab42d42d49aaebe0f0df9810bc96b97dc78a43f6116e4131367",
+      "binary_sha256": "8c0d34e1e7d1b0cef609a195450da81c94c4319215c38fc62ee7684b5bd1d256",
       "records_sha256": [
-        "0e2e96ca6afee3a9b7d11e99e44e086c946057134d7acedc2153803dee0154cd",
-        "5902885cbee8f2c84ec61dc5cd2019d508520c76d65e14b7bc0569de41470f5b"
+        "d480db4383c9bf7a06e7c1c9f27bb87ac3c9c113b5f892dc8faeebd98085d595",
+        "ac5349aa50fea4e6ab102f8353a88cdee3efd55f7aec0ae82548451f8406ade6"
       ]
     }
   },
@@ -1534,15 +1534,15 @@
       "tail-tree-update": "resident",
       "tail-lookahead": true
     },
-    "measured_time_s": 0.04418053291738033,
-    "measured_residual": 1.944144263139175e-06,
-    "measured_orthogonality": 1.3787309082241414e-06,
+    "measured_time_s": 0.044264208525419235,
+    "measured_residual": 2.0975355634501254e-06,
+    "measured_orthogonality": 1.3822960269752005e-06,
     "provenance": {
       "protocol": "median of the timed repetitions of two validated runs, each after a warm-up",
-      "binary_sha256": "9d909c620cd83ab42d42d49aaebe0f0df9810bc96b97dc78a43f6116e4131367",
+      "binary_sha256": "8c0d34e1e7d1b0cef609a195450da81c94c4319215c38fc62ee7684b5bd1d256",
       "records_sha256": [
-        "c5052566e33419819f7b4ac983369ae636667c1d71b9e0880eaf7bdc2ce4a42f",
-        "d03faba44234133b3b4edf497b8504be17bab2dd4a73978ffdace7344041f0e4"
+        "c5aa100a26e6a9dba9e157a011e4937db1ddafdcf71041b4609fa4574a9613e0",
+        "29f961ebd5813b1057e31b60cbad8572c2526eaa10dc4516490237af81b0da6f"
       ]
     }
   },
@@ -1582,15 +1582,15 @@
       "tail-tree-update": "resident",
       "tail-lookahead": true
     },
-    "measured_time_s": 0.030416397377848625,
-    "measured_residual": 0.0023714023237769006,
-    "measured_orthogonality": 0.0031226163393073885,
+    "measured_time_s": 0.030449988320469856,
+    "measured_residual": 0.003125313510525543,
+    "measured_orthogonality": 0.0030857494571973243,
     "provenance": {
       "protocol": "median of the timed repetitions of two validated runs, each after a warm-up",
-      "binary_sha256": "9d909c620cd83ab42d42d49aaebe0f0df9810bc96b97dc78a43f6116e4131367",
+      "binary_sha256": "8c0d34e1e7d1b0cef609a195450da81c94c4319215c38fc62ee7684b5bd1d256",
       "records_sha256": [
-        "0ed3de41d83623781c8c33f653cd923cc1c3fd6e0b2ebfd66055d623fa9a32b0",
-        "28c8f7d82823b3c920627f990e26ab4be1c86e615ac5d2c01bdae434f57d6c39"
+        "3826933969aaca64f080b09153faea54fa3ddd7760677d43ab5b77d45ab52b09",
+        "14226fd1d828bc003054b078f5b9a2cd120a2298ec04e35d8ea00719ff1aa887"
       ]
     }
   },
@@ -1630,15 +1630,15 @@
       "tail-tree-update": "resident",
       "tail-lookahead": true
     },
-    "measured_time_s": 0.03602461889386177,
-    "measured_residual": 6.0633708204415175e-06,
-    "measured_orthogonality": 4.630139967012292e-06,
+    "measured_time_s": 0.03640042245388031,
+    "measured_residual": 7.237423157377134e-06,
+    "measured_orthogonality": 4.63234290650279e-06,
     "provenance": {
       "protocol": "median of the timed repetitions of two validated runs, each after a warm-up",
-      "binary_sha256": "9d909c620cd83ab42d42d49aaebe0f0df9810bc96b97dc78a43f6116e4131367",
+      "binary_sha256": "8c0d34e1e7d1b0cef609a195450da81c94c4319215c38fc62ee7684b5bd1d256",
       "records_sha256": [
-        "a6295cae709e777112840288bdade208770bedd342dd0b74dd82e4f3444a4ac7",
-        "cd5ab4bfef17b0e6263e1189d1440cc0d80bcdfe36bc967432ca8b089d026af0"
+        "b30af141c208f3f6eaeffcc9408912ea426ecebc50d30973474138307d6bc129",
+        "f1d7c55d6bebfb80729a0163057c2694c630a9a678578971eee08a6d7fdfff9c"
       ]
     }
   },
@@ -1666,15 +1666,15 @@
       "grid-rows": 1,
       "lookahead": true
     },
-    "measured_time_s": 0.09352707676589489,
-    "measured_residual": 4.356436427336416e-15,
-    "measured_orthogonality": 1.5940017442696047e-15,
+    "measured_time_s": 0.09331435523927212,
+    "measured_residual": 4.665653205843506e-15,
+    "measured_orthogonality": 1.5967298431356541e-15,
     "provenance": {
       "protocol": "median of the timed repetitions of two validated runs, each after a warm-up",
-      "binary_sha256": "9d909c620cd83ab42d42d49aaebe0f0df9810bc96b97dc78a43f6116e4131367",
+      "binary_sha256": "8c0d34e1e7d1b0cef609a195450da81c94c4319215c38fc62ee7684b5bd1d256",
       "records_sha256": [
-        "cbd53ba042ed2ebbad6ff95148887ac51702bc2293a98459e43d185c7f5c837c",
-        "37acd6de2cb0a30c3af039fc7e57b1f3b71653fc5ffbd17eaece73ad1bf5430a"
+        "a82a86c28409ed8e0303340f5b1e2050d68972329ec274e81a057a80861549b0",
+        "5bfc58a025e37f7925d5aa059bbd38b074d2acc721ecb5c149ef511eaa63c890"
       ]
     }
   },
@@ -1702,15 +1702,15 @@
       "grid-rows": 1,
       "lookahead": true
     },
-    "measured_time_s": 0.09800415113568306,
-    "measured_residual": 2.377940822274336e-06,
-    "measured_orthogonality": 9.982980671073628e-07,
+    "measured_time_s": 0.09840144589543343,
+    "measured_residual": 2.5422066271096175e-06,
+    "measured_orthogonality": 1.007439908704766e-06,
     "provenance": {
       "protocol": "median of the timed repetitions of two validated runs, each after a warm-up",
-      "binary_sha256": "9d909c620cd83ab42d42d49aaebe0f0df9810bc96b97dc78a43f6116e4131367",
+      "binary_sha256": "8c0d34e1e7d1b0cef609a195450da81c94c4319215c38fc62ee7684b5bd1d256",
       "records_sha256": [
-        "be906c201f66e01c386c18f014fbe7e261e58f9b2ce95100b56b99f024d3db86",
-        "e4be009cc7b6a34b6d7af80e78c9d2c281653de9fa71ef7e0b7877970e5403f6"
+        "0fdae455fcbfb65345292b2aee233500379a6cd7e0930838fb2a756f8a6af551",
+        "c3cb2de06f583ca1970ac02f0ba39f47fe2bc0515e3c9527cb496294d03fe76f"
       ]
     }
   },
@@ -1738,15 +1738,15 @@
       "grid-rows": 1,
       "lookahead": true
     },
-    "measured_time_s": 0.05529383197426796,
-    "measured_residual": 0.0013801662428575127,
-    "measured_orthogonality": 0.0013798872822817047,
+    "measured_time_s": 0.05553600378334522,
+    "measured_residual": 0.0014779227262397404,
+    "measured_orthogonality": 0.0013816453132305827,
     "provenance": {
       "protocol": "median of the timed repetitions of two validated runs, each after a warm-up",
-      "binary_sha256": "9d909c620cd83ab42d42d49aaebe0f0df9810bc96b97dc78a43f6116e4131367",
+      "binary_sha256": "8c0d34e1e7d1b0cef609a195450da81c94c4319215c38fc62ee7684b5bd1d256",
       "records_sha256": [
-        "48710fe060548118947ebf437c012bca8b53c493276f3072a794e7d83a7d2a66",
-        "1bbce1284b6bb2febcdb8758808442ab535d0bc22c6faac8d7dce0f6fe36a77d"
+        "4d49f628b6f830abe6eb768514fcf53699cbba6824ab903886bbb6a35fd46c18",
+        "e0b5ea934fdf340ca20eadec925bfb179424b82441ab4ad78a8102b29025e75b"
       ]
     }
   },
@@ -1774,15 +1774,15 @@
       "grid-rows": 1,
       "lookahead": true
     },
-    "measured_time_s": 0.06383814848959446,
-    "measured_residual": 5.998351291861562e-06,
-    "measured_orthogonality": 1.9497828993452285e-06,
+    "measured_time_s": 0.06375681236386299,
+    "measured_residual": 6.693812796118809e-06,
+    "measured_orthogonality": 1.949813901659085e-06,
     "provenance": {
       "protocol": "median of the timed repetitions of two validated runs, each after a warm-up",
-      "binary_sha256": "9d909c620cd83ab42d42d49aaebe0f0df9810bc96b97dc78a43f6116e4131367",
+      "binary_sha256": "8c0d34e1e7d1b0cef609a195450da81c94c4319215c38fc62ee7684b5bd1d256",
       "records_sha256": [
-        "75d4abd4145430abddb30b6a782631a99bee8e4e8e9494931d0d37e9fc071838",
-        "3f125fc170e10cba645864b5ebb25f653c099aa9a45f1a07765aaf6db9e98248"
+        "b1f86f4b7bb473e54a3f09bb7b8bc71b04cd5365f061f49fd51956ba9c7c81df",
+        "2548e45d8718ba307ab1274e8c4ea427aa5cdb6aedb826947c2a81f7b7a0e545"
       ]
     }
   },
@@ -1810,15 +1810,15 @@
       "grid-rows": 1,
       "lookahead": true
     },
-    "measured_time_s": 0.18718202970921993,
-    "measured_residual": 5.454407538906486e-15,
-    "measured_orthogonality": 1.7303818664542426e-15,
+    "measured_time_s": 0.18607697263360023,
+    "measured_residual": 5.534214945367365e-15,
+    "measured_orthogonality": 1.729900916989667e-15,
     "provenance": {
       "protocol": "median of the timed repetitions of two validated runs, each after a warm-up",
-      "binary_sha256": "9d909c620cd83ab42d42d49aaebe0f0df9810bc96b97dc78a43f6116e4131367",
+      "binary_sha256": "8c0d34e1e7d1b0cef609a195450da81c94c4319215c38fc62ee7684b5bd1d256",
       "records_sha256": [
-        "6a38f36d265d48c994aed26e51544e9a1f6cd9b5261cd088bdb7878af5c7c7fb",
-        "03c23b03f016546d1403729537a4b00a0832ffee35bf5316f4fcecf0743f78e4"
+        "c08fda9d89132589f86fb6e5a60369185559683aacd39fa3dcad824ad9b12e1c",
+        "452c78219803b32536afea09737e8c1d25efbd84c16507db6be04f5b2d328b0a"
       ]
     }
   },
@@ -1858,15 +1858,15 @@
       "tail-tree-update": "resident",
       "tail-lookahead": true
     },
-    "measured_time_s": 0.19645093940198421,
-    "measured_residual": 4.0580781014454015e-06,
-    "measured_orthogonality": 1.4085075753084422e-06,
+    "measured_time_s": 0.1966264471411705,
+    "measured_residual": 4.101370595477532e-06,
+    "measured_orthogonality": 1.398520346718807e-06,
     "provenance": {
       "protocol": "median of the timed repetitions of two validated runs, each after a warm-up",
-      "binary_sha256": "9d909c620cd83ab42d42d49aaebe0f0df9810bc96b97dc78a43f6116e4131367",
+      "binary_sha256": "8c0d34e1e7d1b0cef609a195450da81c94c4319215c38fc62ee7684b5bd1d256",
       "records_sha256": [
-        "66b6d4caee82162aea0ab62ec188662428454346a44cc6359313b3a147606f80",
-        "fb7dac4ee168353bd0a69c3dcc91e31b766ba52fd3d50fb52e90e3eb558aaa5a"
+        "2d0106699852460c3500da14d5e0320042e2c7ad8dc0e0359711eb05eb76b6df",
+        "0f44b32566303e5bebdaf71f3386038beba9a1a66848b10ca1d21b86743ec61e"
       ]
     }
   },
@@ -1894,15 +1894,15 @@
       "grid-rows": 1,
       "lookahead": true
     },
-    "measured_time_s": 0.0863804742693901,
-    "measured_residual": 0.0014139674805194844,
-    "measured_orthogonality": 0.0013945000974259205,
+    "measured_time_s": 0.08616960048675537,
+    "measured_residual": 0.001483438788877921,
+    "measured_orthogonality": 0.0013873830712904994,
     "provenance": {
       "protocol": "median of the timed repetitions of two validated runs, each after a warm-up",
-      "binary_sha256": "9d909c620cd83ab42d42d49aaebe0f0df9810bc96b97dc78a43f6116e4131367",
+      "binary_sha256": "8c0d34e1e7d1b0cef609a195450da81c94c4319215c38fc62ee7684b5bd1d256",
       "records_sha256": [
-        "08e70246cb5d5871c7f56128f7d3994429b6d9f41fcbeff0f779c1a7874e6217",
-        "f9d127977e814fb525c64e0de1cb32c3e96c10a06a30d0663947eefa45b39bea"
+        "8c5f2382df2a88ce478dc21f13a864d5c87dfb6f713bd05397aaa06c80f93987",
+        "dddf3be8acb9e19ab55438da25497791b1bc39b2e1876ee7ed8f4aeff2ff3d83"
       ]
     }
   },
@@ -1930,15 +1930,15 @@
       "grid-rows": 1,
       "lookahead": true
     },
-    "measured_time_s": 0.11536170169711113,
-    "measured_residual": 6.286294158512729e-06,
-    "measured_orthogonality": 2.0493939240864404e-06,
+    "measured_time_s": 0.1157428789883852,
+    "measured_residual": 6.8605686917897905e-06,
+    "measured_orthogonality": 2.044609907255762e-06,
     "provenance": {
       "protocol": "median of the timed repetitions of two validated runs, each after a warm-up",
-      "binary_sha256": "9d909c620cd83ab42d42d49aaebe0f0df9810bc96b97dc78a43f6116e4131367",
+      "binary_sha256": "8c0d34e1e7d1b0cef609a195450da81c94c4319215c38fc62ee7684b5bd1d256",
       "records_sha256": [
-        "33906f2026e3f36142fdd84699301b08fe4dcf4c951f7a48bf969bb5fafa4395",
-        "1ed7d72a56e689dd9f12045312e4893e91e72a7d0867822e0d88b3b2e10330c8"
+        "1c87eea814b85bcf4f50ffa4bac752398269d314da447600db0c0208c287fc8c",
+        "e45fc6ce3b496527f4faa81e07f3980f1dec496c6a2d6ad5eacf8b24d13521d9"
       ]
     }
   },
@@ -1966,15 +1966,15 @@
       "grid-rows": 1,
       "lookahead": true
     },
-    "measured_time_s": 0.5161588713526726,
-    "measured_residual": 6.5578710593804815e-15,
-    "measured_orthogonality": 1.8613506832035867e-15,
+    "measured_time_s": 0.514359736815095,
+    "measured_residual": 6.602677296812195e-15,
+    "measured_orthogonality": 1.8700462217396643e-15,
     "provenance": {
       "protocol": "median of the timed repetitions of two validated runs, each after a warm-up",
-      "binary_sha256": "9d909c620cd83ab42d42d49aaebe0f0df9810bc96b97dc78a43f6116e4131367",
+      "binary_sha256": "8c0d34e1e7d1b0cef609a195450da81c94c4319215c38fc62ee7684b5bd1d256",
       "records_sha256": [
-        "c6bdcd302a4b580d8d7afaaa00a3011981e5d16ac324264b9e9b0e440b54b271",
-        "132e5ec190ea3e2d404ed99c8b05170d9e116d2c10e959166a4724e42d973c7a"
+        "f9381f4d16c0d15b049765bc3fb6722c43e578e9d86bb4faa44c21397fcfe438",
+        "3ab402fcc6d40126012f1d01878c38183af4b3e12a8f943b2bbea433f5d3fb99"
       ]
     }
   },
@@ -2002,15 +2002,15 @@
       "grid-rows": 1,
       "lookahead": true
     },
-    "measured_time_s": 0.5205371975898743,
-    "measured_residual": 4.928929852649511e-06,
-    "measured_orthogonality": 1.1991310195465519e-06,
+    "measured_time_s": 0.5198550671339035,
+    "measured_residual": 4.955558224762864e-06,
+    "measured_orthogonality": 1.1960337628807744e-06,
     "provenance": {
       "protocol": "median of the timed repetitions of two validated runs, each after a warm-up",
-      "binary_sha256": "9d909c620cd83ab42d42d49aaebe0f0df9810bc96b97dc78a43f6116e4131367",
+      "binary_sha256": "8c0d34e1e7d1b0cef609a195450da81c94c4319215c38fc62ee7684b5bd1d256",
       "records_sha256": [
-        "047b387918885bea45e7677102d0a24b6c814202950de0636f555bc1c676745c",
-        "79906340f8fced33b03d1ce4b0c34921c271bcad5e7f255f53b5e599a43cc679"
+        "5fcbc9c019024842c46c091e9500b510c1fbc3cc0013486421cf2d6f766ce1f8",
+        "f7e5d4d104876c7a51812bb77c680fa67d88ae3f8072fd16fb86b487d6ccdf1a"
       ]
     }
   },
@@ -2038,15 +2038,15 @@
       "grid-rows": 1,
       "lookahead": true
     },
-    "measured_time_s": 0.17512257769703865,
-    "measured_residual": 0.0014577999519796159,
-    "measured_orthogonality": 0.0013912484835430074,
+    "measured_time_s": 0.17460576072335243,
+    "measured_residual": 0.0014950142018911048,
+    "measured_orthogonality": 0.0013891601778926225,
     "provenance": {
       "protocol": "median of the timed repetitions of two validated runs, each after a warm-up",
-      "binary_sha256": "9d909c620cd83ab42d42d49aaebe0f0df9810bc96b97dc78a43f6116e4131367",
+      "binary_sha256": "8c0d34e1e7d1b0cef609a195450da81c94c4319215c38fc62ee7684b5bd1d256",
       "records_sha256": [
-        "1b9e0161a9360dd9b610294a08af435b721fbd8131ca3ea38f825b133544b0c0",
-        "08bc23d7426d9766e3a6470243d2cd48e4b659546b3cff4994e384e324e5eefc"
+        "539fd60aa3f9e2df6d39cfb7775788ba3e2a36875be5685afc4e92310de34b96",
+        "6d7981ae7321513084f28d33b241e52fd634ea9edb6a585c20e1089afbd5e675"
       ]
     }
   },
@@ -2074,15 +2074,15 @@
       "grid-rows": 1,
       "lookahead": true
     },
-    "measured_time_s": 0.27970896661281586,
-    "measured_residual": 7.027339784046018e-06,
-    "measured_orthogonality": 2.1324867003169004e-06,
+    "measured_time_s": 0.28068598359823227,
+    "measured_residual": 7.404941677255669e-06,
+    "measured_orthogonality": 2.1340332009777843e-06,
     "provenance": {
       "protocol": "median of the timed repetitions of two validated runs, each after a warm-up",
-      "binary_sha256": "9d909c620cd83ab42d42d49aaebe0f0df9810bc96b97dc78a43f6116e4131367",
+      "binary_sha256": "8c0d34e1e7d1b0cef609a195450da81c94c4319215c38fc62ee7684b5bd1d256",
       "records_sha256": [
-        "14dd35d9ffa9178453b2911a551739b23f9e1dbd097be465298f3b62b6bb94d8",
-        "c5e65636b4c0df45cd08b6899e7d52b5b7c02937c0b67e258e269ba216b0ca54"
+        "e13cb264bd05698b189eebdeb7f240355b2e45e6447142395de6d6988357e44d",
+        "f32e696ad855ac1e474ce8c83053495748832cd0cd94e33804bbd6335cb5b432"
       ]
     }
   },
@@ -2110,15 +2110,15 @@
       "grid-rows": 1,
       "lookahead": true
     },
-    "measured_time_s": 1.1575280781835318,
-    "measured_residual": 8.478965632164483e-15,
-    "measured_orthogonality": 1.9849299499769527e-15,
+    "measured_time_s": 1.1632901076227427,
+    "measured_residual": 8.510376910478397e-15,
+    "measured_orthogonality": 1.986335098513573e-15,
     "provenance": {
       "protocol": "median of the timed repetitions of two validated runs, each after a warm-up",
-      "binary_sha256": "9d909c620cd83ab42d42d49aaebe0f0df9810bc96b97dc78a43f6116e4131367",
+      "binary_sha256": "8c0d34e1e7d1b0cef609a195450da81c94c4319215c38fc62ee7684b5bd1d256",
       "records_sha256": [
-        "6387d6cf6418900735fe7cbb4f53ce97049a8227e9948f1768e8ee676dc15c67",
-        "c7b1b08b9104d88f79dc94ce9b3fb5045296709f8e217941bc8ac7347ca41486"
+        "ad7d05e58ecf807796065cc48c097322764096520a775dae7e8d05f0b303000b",
+        "d78639ca1253804ef59c1fac631d5a5691d592b99485e2075e351ccfccde907c"
       ]
     }
   },
@@ -2146,15 +2146,15 @@
       "grid-rows": 1,
       "lookahead": true
     },
-    "measured_time_s": 1.1838207300752401,
-    "measured_residual": 4.128494444365379e-06,
-    "measured_orthogonality": 1.2789115568469323e-06,
+    "measured_time_s": 1.1822334043681622,
+    "measured_residual": 4.148610403391962e-06,
+    "measured_orthogonality": 1.2860562233108179e-06,
     "provenance": {
       "protocol": "median of the timed repetitions of two validated runs, each after a warm-up",
-      "binary_sha256": "9d909c620cd83ab42d42d49aaebe0f0df9810bc96b97dc78a43f6116e4131367",
+      "binary_sha256": "8c0d34e1e7d1b0cef609a195450da81c94c4319215c38fc62ee7684b5bd1d256",
       "records_sha256": [
-        "eb8e95b34c17c31c3f6c7db20e0aeb032a165a02dee742c16c5f308ffd5f2958",
-        "facebae75591036d05ea924482fa63d38e4660a7229f5473a6639a9859f27bc9"
+        "71a94249af604817c8b8f0b4f038ada757c0199edba3138755066542c4837d8f",
+        "3bd46770a3cfb9f42007660e66f2e74140261aad476eb000b08cfa58a7153774"
       ]
     }
   },
@@ -2182,15 +2182,15 @@
       "grid-rows": 1,
       "lookahead": true
     },
-    "measured_time_s": 0.32428353652358055,
-    "measured_residual": 0.001459395157178748,
-    "measured_orthogonality": 0.0013936397159078674,
+    "measured_time_s": 0.32364082895219326,
+    "measured_residual": 0.0014967051625970598,
+    "measured_orthogonality": 0.0013969886068034181,
     "provenance": {
       "protocol": "median of the timed repetitions of two validated runs, each after a warm-up",
-      "binary_sha256": "9d909c620cd83ab42d42d49aaebe0f0df9810bc96b97dc78a43f6116e4131367",
+      "binary_sha256": "8c0d34e1e7d1b0cef609a195450da81c94c4319215c38fc62ee7684b5bd1d256",
       "records_sha256": [
-        "ff1c292d9b9488fe6c1fbe65766acf4f214b72adae73f51d95013423d6f678a4",
-        "b0564a37547dca9519be0b8a6148cd5e28a9a74910d072bd92e9abb4f40048f7"
+        "8b243b6ee543501dea9a69f77cbf8cde9a6a20c11386a2fdf7211f5991d5fbbb",
+        "e4bef588eeb404ae20a2601a3fe270067aac423325f580db83c93353ac346928"
       ]
     }
   },
@@ -2218,15 +2218,15 @@
       "grid-rows": 1,
       "lookahead": true
     },
-    "measured_time_s": 0.6282820217311382,
-    "measured_residual": 7.194730964908297e-06,
-    "measured_orthogonality": 2.2001999684562327e-06,
+    "measured_time_s": 0.6221050936728716,
+    "measured_residual": 7.537775289028328e-06,
+    "measured_orthogonality": 2.2022440172587416e-06,
     "provenance": {
       "protocol": "median of the timed repetitions of two validated runs, each after a warm-up",
-      "binary_sha256": "9d909c620cd83ab42d42d49aaebe0f0df9810bc96b97dc78a43f6116e4131367",
+      "binary_sha256": "8c0d34e1e7d1b0cef609a195450da81c94c4319215c38fc62ee7684b5bd1d256",
       "records_sha256": [
-        "f8cfc7cd030bffdd7982fd10346517efb5b53adf405c8b216ac374ed7870d6a7",
-        "1357a45e4f51bc7e83dfcea27a0041ae727c0878a24bb15922fb94bef8cc42bd"
+        "40ed9be720b526fa8d25deef1115c3149323d8cb31aca22caad5326348e2813c",
+        "bf364eed1cadccf603112d0e729534e8d6e6f17370a95f2f65104d04d22cf584"
       ]
     }
   },
@@ -2254,15 +2254,15 @@
       "grid-rows": 1,
       "lookahead": true
     },
-    "measured_time_s": 3.396233608946204,
-    "measured_residual": 9.235340669007736e-15,
-    "measured_orthogonality": 2.1784198689097623e-15,
+    "measured_time_s": 3.386060828343034,
+    "measured_residual": 9.25210248264892e-15,
+    "measured_orthogonality": 2.1759651207270984e-15,
     "provenance": {
       "protocol": "median of the timed repetitions of two validated runs, each after a warm-up",
-      "binary_sha256": "9d909c620cd83ab42d42d49aaebe0f0df9810bc96b97dc78a43f6116e4131367",
+      "binary_sha256": "8c0d34e1e7d1b0cef609a195450da81c94c4319215c38fc62ee7684b5bd1d256",
       "records_sha256": [
-        "9774e2f7c0c52dfdebf405ba301361ce5aabe1a18cad610edc1ba1f7de94ee97",
-        "4e13b5900036d2420804d586022b9e8d2416a670d08bfbcee5a9e22081963495"
+        "a2e7f40c2c683f2669f60610182e0beb93138c819b6276eaee417df2265f1b14",
+        "7c40065ec50cacfeede6cf027eea2e18197a922de5e91b746a9ddc3dcf640ce5"
       ]
     }
   },
@@ -2290,15 +2290,15 @@
       "grid-rows": 1,
       "lookahead": true
     },
-    "measured_time_s": 3.4660231545567513,
-    "measured_residual": 4.929233586720229e-06,
-    "measured_orthogonality": 1.4221709163129504e-06,
+    "measured_time_s": 3.4645956121385098,
+    "measured_residual": 4.96568378978018e-06,
+    "measured_orthogonality": 1.424708542401333e-06,
     "provenance": {
       "protocol": "median of the timed repetitions of two validated runs, each after a warm-up",
-      "binary_sha256": "9d909c620cd83ab42d42d49aaebe0f0df9810bc96b97dc78a43f6116e4131367",
+      "binary_sha256": "8c0d34e1e7d1b0cef609a195450da81c94c4319215c38fc62ee7684b5bd1d256",
       "records_sha256": [
-        "3b5ed83df6856ce0d16b2e383836d722536caef994516609987afb4d093c0201",
-        "3a29cf4e61754db7b56998fa29cc7184bf506383d680cac63b044f590073a891"
+        "7c97e59590fcc23d11ad8a479ddd213564bf5cc6d98d4b0b9432701ee27657ee",
+        "db08f0abf1097704e74f7dc417897d403f12cc5615124a4e26d615d96dc2170d"
       ]
     }
   },
@@ -2326,15 +2326,15 @@
       "grid-rows": 1,
       "lookahead": true
     },
-    "measured_time_s": 0.7963314726948738,
-    "measured_residual": 0.0014826858350950893,
-    "measured_orthogonality": 0.0013936300351325415,
+    "measured_time_s": 0.8028382305055857,
+    "measured_residual": 0.0015010116086517967,
+    "measured_orthogonality": 0.0013968137949542988,
     "provenance": {
       "protocol": "median of the timed repetitions of two validated runs, each after a warm-up",
-      "binary_sha256": "9d909c620cd83ab42d42d49aaebe0f0df9810bc96b97dc78a43f6116e4131367",
+      "binary_sha256": "8c0d34e1e7d1b0cef609a195450da81c94c4319215c38fc62ee7684b5bd1d256",
       "records_sha256": [
-        "a96260004c74b150ec263d44ab20a2015e2e54d176b32520f03961b49c81c9fd",
-        "1f635bef671f9769b5e2d11ed7b80bdfc91d9b52cbc1941b2f6db7e976b17977"
+        "e254e68ebd435470b819439f3a2ed9f5ae482e4b5e6a43cb922ac9a08ebdb2d5",
+        "4fc45cee8a105e47acec2cd287e5be3523dccb16e58d8ecb59c697fa4486eb51"
       ]
     }
   },
@@ -2362,15 +2362,15 @@
       "grid-rows": 1,
       "lookahead": true
     },
-    "measured_time_s": 1.7710340544581413,
-    "measured_residual": 7.517152982895304e-06,
-    "measured_orthogonality": 2.315775002421183e-06,
+    "measured_time_s": 1.7755302153527737,
+    "measured_residual": 7.693102077327757e-06,
+    "measured_orthogonality": 2.3148202877666976e-06,
     "provenance": {
       "protocol": "median of the timed repetitions of two validated runs, each after a warm-up",
-      "binary_sha256": "9d909c620cd83ab42d42d49aaebe0f0df9810bc96b97dc78a43f6116e4131367",
+      "binary_sha256": "8c0d34e1e7d1b0cef609a195450da81c94c4319215c38fc62ee7684b5bd1d256",
       "records_sha256": [
-        "9f482394665e0716ea9cd7a403c652788c62b3091a4ba882a6f6441f4083f580",
-        "8eae622e0dee26eae6d51862eec6854d54fd480b00cddb98f1e3540f8d66690f"
+        "835e9a8b51d7e856381fb2ee54cc85c125c058ec1a17bb3b17ace3e111fdf1ba",
+        "c5e75d1ca2cd678667eb2f23f80e1b34f4933f676435f264cf13937cfa366274"
       ]
     }
   },
@@ -2398,15 +2398,15 @@
       "grid-rows": 1,
       "lookahead": true
     },
-    "measured_time_s": 8.265125077217817,
-    "measured_residual": 1.072423569695042e-14,
-    "measured_orthogonality": 2.432443513724681e-15,
+    "measured_time_s": 8.296971824020147,
+    "measured_residual": 1.0739797255637985e-14,
+    "measured_orthogonality": 2.4346402593401265e-15,
     "provenance": {
       "protocol": "median of the timed repetitions of two validated runs, each after a warm-up",
-      "binary_sha256": "9d909c620cd83ab42d42d49aaebe0f0df9810bc96b97dc78a43f6116e4131367",
+      "binary_sha256": "8c0d34e1e7d1b0cef609a195450da81c94c4319215c38fc62ee7684b5bd1d256",
       "records_sha256": [
-        "bba30bdbee1fdb9a84a704ea50db115f67f4f83394fc3efcb70e1ee5d824504b",
-        "aaa11cef0837b5bd582163e1f5de063b3d5f91feb0357c85ff944206982fd1c6"
+        "fd2123f1ac39b783adebec3d32394545e9cdec5a1fc28a2412be12347a1e0edf",
+        "efe462e342d6e1e5213a5dd3824c5b188fd24da5e553a6af3b3fff2b252c5cd0"
       ]
     }
   },
@@ -2434,15 +2434,15 @@
       "grid-rows": 1,
       "lookahead": true
     },
-    "measured_time_s": 8.47914381697774,
-    "measured_residual": 5.764737544602391e-06,
-    "measured_orthogonality": 1.5752313924252456e-06,
+    "measured_time_s": 8.467345353215933,
+    "measured_residual": 5.771505916710537e-06,
+    "measured_orthogonality": 1.5771025551418966e-06,
     "provenance": {
       "protocol": "median of the timed repetitions of two validated runs, each after a warm-up",
-      "binary_sha256": "9d909c620cd83ab42d42d49aaebe0f0df9810bc96b97dc78a43f6116e4131367",
+      "binary_sha256": "8c0d34e1e7d1b0cef609a195450da81c94c4319215c38fc62ee7684b5bd1d256",
       "records_sha256": [
-        "220e18636b7841c3aaf3cad182ece90e74dda5d96bfedff11d9c773770f9d55d",
-        "6c980b7f5fb55d721f315dee294a96149caede746bf202d5c630a84477bd506b"
+        "ce0a1bb3d692a0a1e2d6629bf1d508a90d4d68761fc1ee40d18c266897e23306",
+        "7b18ca318187427461e8e5d9aaac1825152fedd23b5af056f0b55cc61ad8a36b"
       ]
     }
   },
@@ -2470,15 +2470,15 @@
       "grid-rows": 1,
       "lookahead": true
     },
-    "measured_time_s": 1.7817554324865341,
-    "measured_residual": 0.00148457439614968,
-    "measured_orthogonality": 0.0013935389888822863,
+    "measured_time_s": 1.7830934170633554,
+    "measured_residual": 0.0015021525065059254,
+    "measured_orthogonality": 0.001395907971586421,
     "provenance": {
       "protocol": "median of the timed repetitions of two validated runs, each after a warm-up",
-      "binary_sha256": "9d909c620cd83ab42d42d49aaebe0f0df9810bc96b97dc78a43f6116e4131367",
+      "binary_sha256": "8c0d34e1e7d1b0cef609a195450da81c94c4319215c38fc62ee7684b5bd1d256",
       "records_sha256": [
-        "ac465d0f529e6432bba71fe1284518e3f8b31e0aa491fcc3c8a05f0e1e31f7a9",
-        "66603dceb2c463520cccb5c6f4a72992c9987f417e7a8b1e6459316397ec806f"
+        "3b0fa14540032196241718fe3ba257a16aa5132db85b0456a7d6f4700d5d0591",
+        "a0ed9f07580cba5254a1c1f0aabd6e226f55c3346d147790e3a986a15a38817f"
       ]
     }
   },
@@ -2506,15 +2506,15 @@
       "grid-rows": 1,
       "lookahead": true
     },
-    "measured_time_s": 4.324024921283126,
-    "measured_residual": 7.597473047018898e-06,
-    "measured_orthogonality": 2.435331583846553e-06,
+    "measured_time_s": 4.288166012614965,
+    "measured_residual": 7.78950234211161e-06,
+    "measured_orthogonality": 2.4387912427111647e-06,
     "provenance": {
       "protocol": "median of the timed repetitions of two validated runs, each after a warm-up",
-      "binary_sha256": "9d909c620cd83ab42d42d49aaebe0f0df9810bc96b97dc78a43f6116e4131367",
+      "binary_sha256": "8c0d34e1e7d1b0cef609a195450da81c94c4319215c38fc62ee7684b5bd1d256",
       "records_sha256": [
-        "80bd290a5a14681bbc7f7a53cc1ba02c71afc9e9d351f2ececd7bf94717c79e7",
-        "df777ea69892d05bab7fc7367539f91e816dcaca80d4d487b2986f923042e064"
+        "f57d128139e2237941d7d04cf80e51bf45793c5d793ef8b83345e4c071d3a334",
+        "0f033f587d49635527784d91c4423c4a77cc7ab61b1ac96f9d88600780be6e12"
       ]
     }
   },
@@ -2542,15 +2542,15 @@
       "grid-rows": 1,
       "lookahead": true
     },
-    "measured_time_s": 14.997760908678174,
-    "measured_residual": 1.181669810418077e-14,
-    "measured_orthogonality": 2.6162796787131044e-15,
+    "measured_time_s": 14.850750029087067,
+    "measured_residual": 1.1825982287619662e-14,
+    "measured_orthogonality": 2.6126793242674182e-15,
     "provenance": {
       "protocol": "median of the timed repetitions of two validated runs, each after a warm-up",
-      "binary_sha256": "9d909c620cd83ab42d42d49aaebe0f0df9810bc96b97dc78a43f6116e4131367",
+      "binary_sha256": "8c0d34e1e7d1b0cef609a195450da81c94c4319215c38fc62ee7684b5bd1d256",
       "records_sha256": [
-        "13b63fa2a6aea52df05495c909515a1650e52fad2f3f9013c597178b1418ba7e",
-        "2eb7d4d683bce56ff8e8160cbe55475a07b8c4452bef9e8aede9e57f2971fd1e"
+        "06bbc27e4dc5972704a81215af2201811aa5fc0de258fae0297c72e89d352e6b",
+        "a1669d73a308351aa0f6e7716baf0cb7d0b4dbe3bd4dfe167f5be66322e6987c"
       ]
     }
   },
@@ -2578,15 +2578,15 @@
       "grid-rows": 1,
       "lookahead": true
     },
-    "measured_time_s": 15.073225418105721,
-    "measured_residual": 6.343870293497598e-06,
-    "measured_orthogonality": 1.6840112076390425e-06,
+    "measured_time_s": 15.073272226378322,
+    "measured_residual": 6.360569906439436e-06,
+    "measured_orthogonality": 1.6868320416795292e-06,
     "provenance": {
       "protocol": "median of the timed repetitions of two validated runs, each after a warm-up",
-      "binary_sha256": "9d909c620cd83ab42d42d49aaebe0f0df9810bc96b97dc78a43f6116e4131367",
+      "binary_sha256": "8c0d34e1e7d1b0cef609a195450da81c94c4319215c38fc62ee7684b5bd1d256",
       "records_sha256": [
-        "113e2482ffb312a540dc81dfde8675fd9a01495959681a060027f106c6d16fbf",
-        "a32c596b549754e0b0597db892c54eda7e816ba55f3ba3e33a2c0c4f7336c9f6"
+        "8881d81b1bbd1f2a1488f5b2fc06687e73464bccf7e6d497903a8ec8c127c0c4",
+        "e292bd4e140a8842a9b46be16d9af34961f812e3a4f23e92016ff25378802ac2"
       ]
     }
   },
@@ -2614,15 +2614,15 @@
       "grid-rows": 1,
       "lookahead": true
     },
-    "measured_time_s": 3.0769413709640503,
-    "measured_residual": 0.001496796953453089,
-    "measured_orthogonality": 0.0013949337606485785,
+    "measured_time_s": 3.093470549210906,
+    "measured_residual": 0.0015046760291040052,
+    "measured_orthogonality": 0.0013950759062585103,
     "provenance": {
       "protocol": "median of the timed repetitions of two validated runs, each after a warm-up",
-      "binary_sha256": "9d909c620cd83ab42d42d49aaebe0f0df9810bc96b97dc78a43f6116e4131367",
+      "binary_sha256": "8c0d34e1e7d1b0cef609a195450da81c94c4319215c38fc62ee7684b5bd1d256",
       "records_sha256": [
-        "6c894b3a68b87e2d9224f8af62f1e4fdff2c2f6d170fc4762baa1da20c9e4a0c",
-        "7a7f1654c955c6080fa10294497ce4e3048bad5a1882e35ecc4c15223028bd95"
+        "c7d78700c1980e7a7f757c255306a6081e92b148ff0b58f928e73d28980edea4",
+        "587d3cd8b0136b45878b7a29cb1d165ddc29529dc3200763bf890135b0e5638b"
       ]
     }
   },
@@ -2650,15 +2650,15 @@
       "grid-rows": 1,
       "lookahead": true
     },
-    "measured_time_s": 7.55224466137588,
-    "measured_residual": 7.770788547949565e-06,
-    "measured_orthogonality": 2.517780076455739e-06,
+    "measured_time_s": 7.563665572553873,
+    "measured_residual": 7.847904751855591e-06,
+    "measured_orthogonality": 2.5179571681260943e-06,
     "provenance": {
       "protocol": "median of the timed repetitions of two validated runs, each after a warm-up",
-      "binary_sha256": "9d909c620cd83ab42d42d49aaebe0f0df9810bc96b97dc78a43f6116e4131367",
+      "binary_sha256": "8c0d34e1e7d1b0cef609a195450da81c94c4319215c38fc62ee7684b5bd1d256",
       "records_sha256": [
-        "f55a141a0865ea4b82558aa484406fc5b87212dc047e648e01b7ab9dbdab8f80",
-        "3f294d42e973e477114b7e23b9f77df4c79c12be1007fdd8615d66ddf1a26d4c"
+        "189ee3c999707fd73d142d0a2589caf36e3c6b691d3a150b64fd5d7227cc357b",
+        "f8b8aa82309d42caad55ad2a8d8fa7ce858e912230d0427856df682a6dfcfc71"
       ]
     }
   },
@@ -2686,15 +2686,15 @@
       "grid-rows": 1,
       "lookahead": true
     },
-    "measured_time_s": 27.00557791814208,
-    "measured_residual": 1.3057584788356057e-14,
-    "measured_orthogonality": 2.8147847886740564e-15,
+    "measured_time_s": 27.13122067041695,
+    "measured_residual": 1.306848969210062e-14,
+    "measured_orthogonality": 2.8078412214040052e-15,
     "provenance": {
       "protocol": "median of the timed repetitions of two validated runs, each after a warm-up",
-      "binary_sha256": "9d909c620cd83ab42d42d49aaebe0f0df9810bc96b97dc78a43f6116e4131367",
+      "binary_sha256": "8c0d34e1e7d1b0cef609a195450da81c94c4319215c38fc62ee7684b5bd1d256",
       "records_sha256": [
-        "a5bda6a65cab129d1573221fc23b03843986877a7d5fe5dba4eed5944a75541c",
-        "78d0611a694ee0e11ab20aad0a45fd57cde1c6e3402e2ff20a117baf76807f5f"
+        "d5a96fb2414285ae552675926bcddb80f8475686f6410817bdde1cbea8d4aee8",
+        "ecbe4ebc2cc31a5af1f748fd9963b0fc21bf47621f03735b916c9fbca29f5ba5"
       ]
     }
   },
@@ -2722,15 +2722,15 @@
       "grid-rows": 1,
       "lookahead": true
     },
-    "measured_time_s": 27.586415210738778,
-    "measured_residual": 7.02446894519904e-06,
-    "measured_orthogonality": 1.8129257089071476e-06,
+    "measured_time_s": 27.48641960322857,
+    "measured_residual": 7.0288723885650954e-06,
+    "measured_orthogonality": 1.8140163502396065e-06,
     "provenance": {
       "protocol": "median of the timed repetitions of two validated runs, each after a warm-up",
-      "binary_sha256": "9d909c620cd83ab42d42d49aaebe0f0df9810bc96b97dc78a43f6116e4131367",
+      "binary_sha256": "8c0d34e1e7d1b0cef609a195450da81c94c4319215c38fc62ee7684b5bd1d256",
       "records_sha256": [
-        "dd9e8fb188438578f8b9f8aec7cf0aa6197aa565a759d8ae30ac594a8427ecba",
-        "d98c507379a3f92a773bd1bc5a0d60b41eb37b7b7f7378814db864aa5b37c57d"
+        "5e8776b83151af5269e470beac6890b8af7f76cc525eb637fc70ce78b2064f6f",
+        "24ce466ece2ae3d46ba9b544adc2d0369e6c497877f570c6f2ab90d3783cb301"
       ]
     }
   },
@@ -2758,15 +2758,15 @@
       "grid-rows": 1,
       "lookahead": true
     },
-    "measured_time_s": 5.454378439113498,
-    "measured_residual": 0.001498440646044772,
-    "measured_orthogonality": 0.0013964783007191712,
+    "measured_time_s": 5.437196910381317,
+    "measured_residual": 0.001508370710601122,
+    "measured_orthogonality": 0.0013949673512542674,
     "provenance": {
       "protocol": "median of the timed repetitions of two validated runs, each after a warm-up",
-      "binary_sha256": "9d909c620cd83ab42d42d49aaebe0f0df9810bc96b97dc78a43f6116e4131367",
+      "binary_sha256": "8c0d34e1e7d1b0cef609a195450da81c94c4319215c38fc62ee7684b5bd1d256",
       "records_sha256": [
-        "fa4e742668915af3132ba8cc0447596b9d5354980644fb0e282f73198a0f93f2",
-        "160f41a6bf4f155a2dab1399a2df4dc8a5c905ffa54bd65e7d89d0d499ef5021"
+        "c44c6f7a77aaf206d306c42ffb7db94719f46d733bfd036151e67a7308f07267",
+        "b3b73cf062f9f28df9f25111c03c07558ce65d032265a1a3df810b946e0bbff7"
       ]
     }
   },
@@ -2794,15 +2794,15 @@
       "grid-rows": 1,
       "lookahead": true
     },
-    "measured_time_s": 13.948204996064305,
-    "measured_residual": 7.784412371164022e-06,
-    "measured_orthogonality": 2.6119876923971894e-06,
+    "measured_time_s": 13.82516829483211,
+    "measured_residual": 7.923967617437457e-06,
+    "measured_orthogonality": 2.614456315439399e-06,
     "provenance": {
       "protocol": "median of the timed repetitions of two validated runs, each after a warm-up",
-      "binary_sha256": "9d909c620cd83ab42d42d49aaebe0f0df9810bc96b97dc78a43f6116e4131367",
+      "binary_sha256": "8c0d34e1e7d1b0cef609a195450da81c94c4319215c38fc62ee7684b5bd1d256",
       "records_sha256": [
-        "99dcc2568241dc2492846e630eeaa830189e4eea947f767d3adf3a8a23bdbaf7",
-        "b9eb145ee5770f783292764660251a3cc4fb4a93df6a59c18c0daf9ddf733e5b"
+        "f43426f4f49ed5264489513f6042b90035a7105bbdc8db97beb3631188a4ac4e",
+        "5a428a9bf41635d904015ee163a72140b23b3da5a94ce6a94da0fa4c516a5896"
       ]
     }
   },
@@ -2830,15 +2830,15 @@
       "grid-rows": 1,
       "lookahead": true
     },
-    "measured_time_s": 43.11435297690332,
-    "measured_residual": 1.407990890929157e-14,
-    "measured_orthogonality": 2.978429379270989e-15,
+    "measured_time_s": 42.78819230571389,
+    "measured_residual": 1.4086485771377928e-14,
+    "measured_orthogonality": 2.975776947073233e-15,
     "provenance": {
       "protocol": "median of the timed repetitions of two validated runs, each after a warm-up",
-      "binary_sha256": "9d909c620cd83ab42d42d49aaebe0f0df9810bc96b97dc78a43f6116e4131367",
+      "binary_sha256": "8c0d34e1e7d1b0cef609a195450da81c94c4319215c38fc62ee7684b5bd1d256",
       "records_sha256": [
-        "f8cc209baea0063004a21135b94e16fda4a5cd192b42c227b2bae7617b39be47",
-        "d703cf85dff396e5b74527e04e897beedf05ff4d3f3832fb7db6457e449d9be5"
+        "532fa32443402d942df3815e50cb8631e012cc7b589ccf7143dea1a5b24c3c75",
+        "1ba04c49be3c0ab314bcef2f4882f2377edcd72c7438fba50214acc10e05df0d"
       ]
     }
   },
@@ -2866,15 +2866,15 @@
       "grid-rows": 1,
       "lookahead": true
     },
-    "measured_time_s": 63.59939029440284,
-    "measured_residual": 1.3095492486877477e-14,
-    "measured_orthogonality": 3.1299831598438756e-15,
+    "measured_time_s": 63.61982071772218,
+    "measured_residual": 1.3098729940779466e-14,
+    "measured_orthogonality": 3.1289883616097956e-15,
     "provenance": {
       "protocol": "median of the timed repetitions of two validated runs, each after a warm-up",
-      "binary_sha256": "9d909c620cd83ab42d42d49aaebe0f0df9810bc96b97dc78a43f6116e4131367",
+      "binary_sha256": "8c0d34e1e7d1b0cef609a195450da81c94c4319215c38fc62ee7684b5bd1d256",
       "records_sha256": [
-        "8a2d12743ef563630b074c46f53c0d07db6977a61825940a156f69c6703a0bdf",
-        "bf3e97deaf3f1ea81eab81e5e72823a164c401949ad18c07c63248fd630a4ff7"
+        "5c9ca262d37d51416b5aaf831e629c232fc03fd39fc3cb48d6527453d1a92a33",
+        "e2835bb8360ba1a58926855b1a708443ab2e2c141c5cf7594f32f34190c23b2b"
       ]
     }
   },
@@ -2902,15 +2902,15 @@
       "grid-rows": 1,
       "lookahead": true
     },
-    "measured_time_s": 64.45401907898486,
-    "measured_residual": 8.08449413502468e-06,
-    "measured_orthogonality": 2.004041999490725e-06,
+    "measured_time_s": 64.54650824144483,
+    "measured_residual": 8.088759617594804e-06,
+    "measured_orthogonality": 2.0095477275364785e-06,
     "provenance": {
       "protocol": "median of the timed repetitions of two validated runs, each after a warm-up",
-      "binary_sha256": "9d909c620cd83ab42d42d49aaebe0f0df9810bc96b97dc78a43f6116e4131367",
+      "binary_sha256": "8c0d34e1e7d1b0cef609a195450da81c94c4319215c38fc62ee7684b5bd1d256",
       "records_sha256": [
-        "6c8f8df1f73f7fca9ca43b215dd0abf9e0217b457484bd729dceca7c1a44f645",
-        "c1bb8e9521458615b33e0c2a4288fd9c5d5d44432442f5317ce4ce3e8fb04b51"
+        "8816dfea28c5f25c4975becde6088c72dadee13de44c87484342f4b1d2fca6bd",
+        "c71338d591623f635876dd3f0ad8f5619e897aafd5829c8415042df85bd1fb74"
       ]
     }
   },
@@ -2938,15 +2938,15 @@
       "grid-rows": 1,
       "lookahead": true
     },
-    "measured_time_s": 12.14297048933804,
-    "measured_residual": 0.00150523618510201,
-    "measured_orthogonality": 0.001396388867072939,
+    "measured_time_s": 12.0791473146528,
+    "measured_residual": 0.001512421045039922,
+    "measured_orthogonality": 0.0013951299129925491,
     "provenance": {
       "protocol": "median of the timed repetitions of two validated runs, each after a warm-up",
-      "binary_sha256": "9d909c620cd83ab42d42d49aaebe0f0df9810bc96b97dc78a43f6116e4131367",
+      "binary_sha256": "8c0d34e1e7d1b0cef609a195450da81c94c4319215c38fc62ee7684b5bd1d256",
       "records_sha256": [
-        "6d974c445af37744990e6c0a1535764a3e2013c5e3775b75812c5200cc8f517f",
-        "5659c822d9d5885a4fa66d474a4d71101722c454b2e7fd85ad0b07d62d416256"
+        "bf30b6cc6121625f03403efe77c22db539bd1333e868350a31a223cd4fa5d0fe",
+        "eab51fb2ec5fc9a81144fa23a85530ed3b90f3476aceda060eb83e195edf3be7"
       ]
     }
   },
@@ -2974,15 +2974,15 @@
       "grid-rows": 1,
       "lookahead": true
     },
-    "measured_time_s": 32.199731450527906,
-    "measured_residual": 7.899032350376857e-06,
-    "measured_orthogonality": 2.7684740948682114e-06,
+    "measured_time_s": 31.893165353685617,
+    "measured_residual": 8.00521039776203e-06,
+    "measured_orthogonality": 2.7675099364307343e-06,
     "provenance": {
       "protocol": "median of the timed repetitions of two validated runs, each after a warm-up",
-      "binary_sha256": "9d909c620cd83ab42d42d49aaebe0f0df9810bc96b97dc78a43f6116e4131367",
+      "binary_sha256": "8c0d34e1e7d1b0cef609a195450da81c94c4319215c38fc62ee7684b5bd1d256",
       "records_sha256": [
-        "3d3a6bfc0c9db9cbf0d9dd001df21cf91137a64c4908e10d0a5ed4f6f9c9b9b9",
-        "fa3769e4bc9f104549c5f44eecc95b535bc20e850ad85de24d271476cfefefa9"
+        "e055de5185f3a9c373a7fc5e95a3150db058c5399119305622e6a4a12c3f328f",
+        "d8ece9be2dff4502774556ac9046988b293aba5e0e97d3cea49dcc4b7d347bc3"
       ]
     }
   },

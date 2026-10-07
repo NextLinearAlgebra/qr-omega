@@ -42,9 +42,9 @@ the runner exit nonzero. Existing result directories are never overwritten.
   even count). The interval starts with the input ready on the GPUs and ends when every GPU has finished;
   generation, allocation and validation are outside it. On several GPUs the input is generated in the
   block-cyclic layout, so no redistribution is timed. Throughput counts `(4/3) n³` operations.
-* **Residual.** The largest `‖A(:,J) − (QR)(:,J)‖_F / ‖A(:,J)‖_F` over the column blocks `J` of a reconstruction of
-  all n columns.
-* **Orthogonality.** `‖Q(QᵀX) − X‖_F / ‖X‖_F` for 16 deterministic random vectors `X`, applying Q from the retained
+* **Residual.** The largest `‖A(:,J) − (QR)(:,J)‖_F / ‖A(:,J)‖_F` over the 512-column blocks `J` of a
+  reconstruction of all n columns (on several GPUs, over the rows each GPU holds).
+* **Orthogonality.** `‖Qᵀ(QX) − X‖_F / ‖X‖_F` for 16 deterministic random vectors `X`, applying Q from the retained
   factors.
 * The time and the checks of a data point come from the same configuration. TF32 and 3xTF32 are compared with the
   references' FP32.
