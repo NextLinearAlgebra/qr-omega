@@ -8,7 +8,7 @@
 #include "carrier.hpp"
 #include "kernels.cuh"
 #include <type_traits>
-namespace tqr {
+namespace qr_omega {
 inline constexpr int carried_group_threads = 128, carried_group_warps = carried_group_threads / 32;
 inline constexpr int carried_tile = 64;
 template <class T, int CB, int TM, int TN>
@@ -245,4 +245,4 @@ Carrier launch_short_carrier(const T *a, int lda, const T *b, int ldb, T *out, i
     CU(cudaGetLastError());
     return carried_carrier(i, q, 2);
 }
-} // namespace tqr
+} // namespace qr_omega

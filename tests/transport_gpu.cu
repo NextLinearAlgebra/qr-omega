@@ -1,9 +1,9 @@
-// Exact GPU checks for the paper LLBuffer adapter and independent NVSHMEM publications.
+// Exact GPU checks for the low-latency NCCL LLBuffer adapter and independent NVSHMEM publications.
 // Enqueue hundreds of variable-size episodes without a host/device rendezvous between them.
 #include "plan.hpp"
 #include "transport.cuh"
 
-using namespace tqr;
+using namespace qr_omega;
 
 template <class T> __device__ T value(int epoch, int rank, int i) {
     return T(100 * epoch + 3 * rank + i % 13);

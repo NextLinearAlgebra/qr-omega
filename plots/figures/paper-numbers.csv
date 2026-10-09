@@ -1,0 +1,72 @@
+section,statement,paper,data,status
+Abstract,"largest speedup over cuSOLVER, one GPU (FP64, FP32)",2.2,2.2,exact
+Abstract,"largest speedup over MAGMA and SLATE, one GPU (FP64, FP32)",11.9,11.9,exact
+Abstract,"FP64 residual at n = 131,072 against cuSOLVER and MAGMA (about)",60%,60%,exact
+Abstract,"TF32 throughput at n = 131,072 (TFLOP/s)",249,249,exact
+Abstract,"3xTF32 throughput at n = 131,072 (TFLOP/s)",94,94,exact
+Abstract,"speedup over cuSOLVERMp on eight GPUs (FP64, FP32)",1.02-1.12,1.02-1.12,exact
+Abstract,"TF32 throughput at n = 327,680 on eight GPUs (TFLOP/s)",1327,1327,exact
+III-B,"cuSOLVER as a fraction of DGEMM at n = 80,000",77%,77%,exact
+III-B,"DGEMM at n = 1,024 (TFLOP/s)",53,53,exact
+III-B,"DGEMM at n = 1,024 as a fraction of the FP64 peak",79%,79%,exact
+III-B,"cuSOLVER at n = 1,024 (TFLOP/s)",0.35,0.35,exact
+III-B,"growth exponent of cuSOLVER's time up to n = 4,096",1.3,1.3,exact
+III-B,"fastest library as a fraction of DGEMM, n = 4,096 to 65,536",7-73%,7-73%,exact
+V-B,"MAGMA's FP32 advantage at n = 80,000",2%,2%,exact
+V-B,"speedup over cuSOLVER below n = 32,000 (FP64, FP32)",1.4-2.2,1.4-2.2,exact
+V-B,"speedup over MAGMA and SLATE below n = 32,000 (FP64, FP32)",1.4-11.9,1.4-11.9,exact
+V-B,"fraction of the GEMM rate at n = 80,000 (FP64)",0.82,0.82,exact
+V-B,"fraction of the GEMM rate at n = 80,000 (FP32)",0.88,0.88,exact
+V-B,"time at n = 131,072, FP64 (s)",63.6,63.6,exact
+V-B,"time at n = 131,072, FP32 (s)",64.6,64.5,rounding
+V-B,"throughput at n = 131,072, FP64 (TFLOP/s)",47.2,47.2,exact
+V-B,"throughput at n = 131,072, FP32 (TFLOP/s)",46.5,46.5,exact
+V-B,"cuSOLVER at n = 131,072, FP64 (s)",64.2,64.2,exact
+V-B,"MAGMA at n = 131,072, FP32 (s)",64.5,64.5,exact
+V-B,"TF32 time at n = 131,072 (s)",12.1,12.1,exact
+V-B,"TF32 throughput at n = 131,072 (TFLOP/s)",249,249,exact
+V-B,"TF32 speedup over the fastest FP32 reference at n = 131,072",5.3,5.3,exact
+V-B,"TF32 fraction of the TF32 GEMM rate at n = 80,000",0.65,0.65,exact
+V-B,"3xTF32 throughput at n = 131,072 (TFLOP/s)",94,94,exact
+V-B,"3xTF32 speedup over the fastest FP32 reference at n = 131,072",2.0,2.0,exact
+V-B,"3xTF32 GEMM of CUTLASS at n = 80,000 (TFLOP/s)",63,63,exact
+V-B,FP64 and FP32 errors within this factor of the most accurate reference,3.7,3.9,differs
+V-B,"FP64 residual at n = 131,072",1.3e-14,1.3e-14,exact
+V-B,the lower of cuSOLVER's and MAGMA's FP64 residual,2.2e-14,2.2e-14,exact
+V-B,"FP64 orthogonality error at n = 131,072",3.1e-15,3.1e-15,exact
+V-B,the lower of cuSOLVER's and MAGMA's FP64 orthogonality error,5.5e-15,5.5e-15,exact
+V-B,"SLATE's FP64 residual at n = 131,072",4.3e-15,4.3e-15,exact
+V-B,TF32 errors,1.0-5.5e-3,1.0-5.5e-3,exact
+V-B,3xTF32 residual within this factor of the most accurate FP32 reference,9,9,exact
+V-B,3xTF32 residual below cuSOLVER's and MAGMA's from n,"80,000","80,000",exact
+V-B,tall-and-skinny shapes,11,11,exact
+V-B,FP64 tall-and-skinny throughput at n = 64 (TFLOP/s),1.2-1.6,1.2-1.6,exact
+V-B,"FP64 tall-and-skinny throughput at n = 4,096 (TFLOP/s)",18-23,19-23,rounding
+V-B,TF32 highest tall-and-skinny throughput (TFLOP/s),46,46,exact
+V-B,"speedup over cuSOLVER at m = 131,072",1.1-3.3,1.1-3.3,exact
+V-B,"speedup over MAGMA and SLATE at m = 131,072",1.6-83,1.6-83,exact
+V-C,"speedup over cuSOLVERMp, FP64",1.02-1.06,1.02-1.06,exact
+V-C,"speedup over cuSOLVERMp, FP32",1.11-1.12,1.11-1.12,exact
+V-C,"speedup over MAGMA, FP64",1.7-2.6,1.7-2.5,rounding
+V-C,"speedup over SLATE, FP64",2.6-4.6,2.6-4.6,exact
+V-C,FP64 throughput (TFLOP/s),273-317,273-317,exact
+V-C,FP64 throughput per GPU (TFLOP/s),34-40,34-40,exact
+V-C,TF32 throughput (TFLOP/s),903-1327,903-1327,exact
+V-C,TF32 speedup over the fastest FP32 reference,3.5-4.2,3.5-4.2,exact
+V-C,3xTF32 throughput (TFLOP/s),493-633,493-633,exact
+V-C,3xTF32 speedup over the fastest FP32 reference,1.9-2.0,1.9-2.0,exact
+V-C,"FP64 residual at n = 131,072",9.4e-15,9.4e-15,exact
+V-C,"FP64 residual at n = 294,912",1.4e-14,1.4e-14,exact
+V-C,"FP64 orthogonality error, n = 131,072 to 294,912",2.9-4.0e-15,2.9-4.0e-15,exact
+V-C,SLATE's FP64 residual,4e-15,4e-15,exact
+V-C,"FP32 residuals of QR-Omega, cuSOLVERMp and MAGMA",5-11e-6,5-11e-6,exact
+V-C,TF32 residual (median over the sizes),1.5e-3,1.5e-3,exact
+V-C,3xTF32 residual,5.3-5.7e-6,5.3-5.7e-6,exact
+VII,"eight-GPU FP64 residual over the one-GPU one at n = 131,072, at most",2,2,exact
+V-C,"FP32 speedup from two to three, four and eight GPUs","1.48, 2.01, 3.74","1.48, 2.01, 3.74",exact
+V-C,"3xTF32 speedup from two to three, four and eight GPUs","1.46, 2.01, 3.41","1.46, 2.01, 3.41",exact
+V-C,cuSOLVERMp speedup from two to eight GPUs,3.74,3.74,exact
+V-C,MAGMA speedup from two to eight GPUs,3.58,3.58,exact
+V-C,FP32 margin over cuSOLVERMp,1.12-1.14,1.12-1.14,exact
+V-C,SLATE speedup from two to eight GPUs,3.15,3.15,exact
+V-C,TF32 speedup from two to eight GPUs,2.52,2.52,exact

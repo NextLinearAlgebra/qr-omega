@@ -6,7 +6,7 @@
 // The owner of each part of the tile adds the two partials and commits X -= D once.
 #include "carrier.hpp"
 #include "kernels.cuh"
-namespace tqr {
+namespace qr_omega {
 namespace kami {
 __device__ __forceinline__ uint32_t smem_u32(const void *p) {
     return uint32_t(__cvta_generic_to_shared(p));
@@ -370,7 +370,7 @@ __global__ void __launch_bounds__(256, 1)
     const uint32_t aoff = uint32_t(64 * wm + 4 * r) * 4u,
                    boff = ABytes + uint32_t(64 * wn + 4 * sc) * 4u;
     float fa[2][16], fb[2][8];
-    auto ldfrag = [&](float(&a)[16], float(&b)[8], uint32_t st, int k) {
+    auto ldfrag = [&](float (&a)[16], float (&b)[8], uint32_t st, int k) {
         const uint32_t ak = st + aoff + uint32_t(k * BM) * 4u,
                        bk = st + boff + uint32_t(k * BN) * 4u;
 #pragma unroll
@@ -394,7 +394,7 @@ __global__ void __launch_bounds__(256, 1)
     };
     // Column by column: in this order ptxas spreads the loads of the next fragments through the
     // FMAs instead of issuing them in bursts.
-    auto fma_step = [&](const float(&a)[16], const float(&b)[8]) {
+    auto fma_step = [&](const float (&a)[16], const float (&b)[8]) {
 #pragma unroll
         for (int j = 0; j < 8; ++j)
 #pragma unroll
@@ -501,4 +501,4 @@ Carrier launch_simt_d2(const float *v, int ldv, const float *zt, int ldz, float 
     return simt_d2_carrier<Cfg>(rows, q);
 }
 } // namespace kami
-} // namespace tqr
+} // namespace qr_omega

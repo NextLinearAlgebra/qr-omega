@@ -4,7 +4,7 @@
 #include <cuda_profiler_api.h>
 #include <map>
 
-using namespace tqr;
+using namespace qr_omega;
 
 namespace {
 struct Arguments {
@@ -277,14 +277,8 @@ double median(std::vector<double> values) {
     return values[values.size() / 2];
 }
 
-template <class T> int run(const Arguments &args, Context &ctx) {
-    const Options &schedule = args.schedule;
-    Engine<T> engine(ctx, args.m, args.n, schedule);
-    const Plan &layout = engine.layout();
-    const Grid &grid = layout.grid;
-    const Place place{layout.rows, layout.cols, grid.row(ctx.rank), grid.col(ctx.rank)};
-    Matrix<T> a(args.m, args.n, layout.rows.local(place.r), layout.cols.local(place.c));
-    Stream st;
+// The table g of the conditioned input on the GPU; empty for the default input.
+Buffer<double> input_table(const Arguments &args, const Stream &st) {
     Buffer<double> table;
     if (args.kappa) {
         const std::vector<double> host = conditioned_table(args.n, args.kappa);
@@ -292,35 +286,45 @@ template <class T> int run(const Arguments &args, Context &ctx) {
         table.upload(host, st);
         st.sync();
     }
-    const double *g = args.kappa ? table.p : nullptr;
-    // The first factorization warms up the kernels and is not timed.
-    std::vector<double> times;
-    double warmup = 0;
+    return table;
+}
+
+struct Timings {
     int status = 0;
-    for (int rep = 0; rep <= args.reps && !status; ++rep) {
+    double warmup = 0;
+    std::vector<double> times;
+};
+// Factors a freshly generated input reps + 1 times, each time from the first GPU's start to the
+// last GPU's end. The first factorization warms up the kernels and is not timed; a factorization
+// that fails ends the series.
+template <class T>
+Timings time_factorizations(Engine<T> &engine, Matrix<T> &a, Context &ctx, const Place &place,
+                            const double *g, const Arguments &args, const Stream &st) {
+    Timings timings;
+    for (int rep = 0; rep <= args.reps && !timings.status; ++rep) {
         generate<<<256, 128, 0, st>>>(a.a.p, a.rows, a.cols, a.ld, place, 0, g);
         st.sync();
         ctx.barrier();
-        if (args.profile_factor && rep == 1)
+        const bool profiled = args.profile_factor && rep == 1;
+        if (profiled)
             CU(cudaProfilerStart());
         const double start = seconds();
-        status = engine.factor(a);
+        timings.status = engine.factor(a);
         ctx.barrier();
         const double elapsed = ctx.max(seconds()) - ctx.min(start);
-        if (args.profile_factor && rep == 1)
+        if (profiled)
             CU(cudaProfilerStop());
         if (rep)
-            times.push_back(elapsed);
+            timings.times.push_back(elapsed);
         else
-            warmup = elapsed;
+            timings.warmup = elapsed;
     }
-    json record = {{"mode", args.mode},
-                   {"m", args.m},
-                   {"n", args.n},
-                   {"kappa", args.kappa},
-                   {"gpus", ctx.size},
-                   {"grid", {grid.pr, grid.pc}},
-                   {"replication",
+    return timings;
+}
+
+// The schedule of a run as its record reports it, with the schedule of the tree-format tail.
+json schedule_record(const Options &schedule) {
+    json record = {{"replication",
                     {{"w", schedule.c.w},
                      {"z", schedule.c.z},
                      {"domain", schedule.c.domain},
@@ -332,11 +336,7 @@ template <class T> int run(const Arguments &args, Context &ctx) {
                    {"panel_algorithm", "hqr"},
                    {"panel_format", schedule.reconstruct ? "wy" : "tree"},
                    {"aggregate", schedule.aggregate},
-                   {"tail_from", schedule.tail_from},
-                   {"status", status},
-                   {"warmup_s", warmup},
-                   {"times_s", times},
-                   {"pass", false}};
+                   {"tail_from", schedule.tail_from}};
     if (schedule.tail_from) {
         const Options &t = schedule.tail ? *schedule.tail : schedule;
         record["tail"] = {
@@ -350,30 +350,66 @@ template <class T> int run(const Arguments &args, Context &ctx) {
             {"tree_update", t.resident_tree ? "resident" : "streaming"},
             {"lookahead", t.lookahead}};
     }
+    return record;
+}
+
+// The checks of the factors and whether they pass: both errors within 32 u (sqrt(m) + sqrt(n) + b),
+// at most 0.01, for the unit roundoff u of the working precision.
+template <class T>
+json check_record(Engine<T> &engine, const Matrix<T> &a, const Context &ctx, const Place &place,
+                  const double *g, const Arguments &args) {
+    const Checks checks = validate(engine, a, ctx, place, validation_width<T>(ctx, a.rows), g);
+    const double tolerance = std::min(
+        0.01, 32 * working_unit_roundoff<T>() *
+                  (std::sqrt(double(args.m)) + std::sqrt(double(args.n)) + args.schedule.b));
+    return {{"residual", checks.residual},
+            {"orthogonality", checks.orthogonality},
+            {"tolerance", tolerance},
+            {"pass",
+             !checks.status && checks.residual <= tolerance && checks.orthogonality <= tolerance}};
+}
+
+void write_record(const json &record, const std::string &output) {
+    if (output.empty())
+        std::cout << record.dump(2) << '\n';
+    else
+        std::ofstream(output) << record.dump(2) << '\n';
+}
+
+template <class T> int run(const Arguments &args, Context &ctx) {
+    Engine<T> engine(ctx, args.m, args.n, args.schedule);
+    const Plan &layout = engine.layout();
+    const Grid &grid = layout.grid;
+    const Place place{layout.rows, layout.cols, grid.row(ctx.rank), grid.col(ctx.rank)};
+    Matrix<T> a(args.m, args.n, layout.rows.local(place.r), layout.cols.local(place.c));
+    Stream st;
+    const Buffer<double> table = input_table(args, st);
+    const double *g = args.kappa ? table.p : nullptr;
+    const Timings timings = time_factorizations(engine, a, ctx, place, g, args, st);
+    const int status = timings.status;
+
+    json record = schedule_record(args.schedule);
+    record.update(json{{"mode", args.mode},
+                       {"m", args.m},
+                       {"n", args.n},
+                       {"kappa", args.kappa},
+                       {"gpus", ctx.size},
+                       {"grid", {grid.pr, grid.pc}},
+                       {"status", status},
+                       {"warmup_s", timings.warmup},
+                       {"times_s", timings.times},
+                       {"pass", false}});
     if (!status) {
-        const Tally products = engine.products();
-        record["carriers"] = carrier_report(products, ctx);
+        record["carriers"] = carrier_report(engine.products(), ctx);
         record["update_workspace"] = engine.update_workspace();
-        record["median_s"] = median(times);
+        record["median_s"] = median(timings.times);
         record["checked"] = args.check;
-    }
-    if (!status && args.check) {
-        const Checks checks = validate(engine, a, ctx, place, validation_width<T>(ctx, a.rows), g);
-        const double tolerance = std::min(
-            0.01, 32 * working_unit_roundoff<T>() *
-                      (std::sqrt(double(args.m)) + std::sqrt(double(args.n)) + schedule.b));
-        record["residual"] = checks.residual;
-        record["orthogonality"] = checks.orthogonality;
-        record["tolerance"] = tolerance;
-        record["pass"] =
-            !checks.status && checks.residual <= tolerance && checks.orthogonality <= tolerance;
+        if (args.check)
+            record.update(check_record(engine, a, ctx, place, g, args));
     }
     if (ctx.rank == 0) {
         record["communication"] = engine.communication();
-        if (args.output.empty())
-            std::cout << record.dump(2) << '\n';
-        else
-            std::ofstream(args.output) << record.dump(2) << '\n';
+        write_record(record, args.output);
     }
     // Unchecked runs only time a schedule: they succeed when the factorization completes.
     return record["pass"] || (!args.check && !status) ? 0 : 1;

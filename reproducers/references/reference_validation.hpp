@@ -5,10 +5,10 @@
 #include "reference_gpu.hpp"
 #include <cusolverDn.h>
 
-namespace tqr {
+namespace qr_omega {
 inline int reference_validation_width(int n) {
     int width = 512;
-    if (const char *value = std::getenv("TQR_REFERENCE_VALIDATION_WIDTH")) {
+    if (const char *value = std::getenv("QR_OMEGA_REFERENCE_VALIDATION_WIDTH")) {
         width = std::stoi(value);
         if (width < 512 || width > 8192 || width % 512)
             throw std::runtime_error("reference_validation_width_multiple_of_512_up_to_8192");
@@ -135,4 +135,4 @@ json validate_conventional_reference(int m, int n, int block, ReadR read_r, Appl
         {"scope",
          "GPU reconstruction of every input column and a finite Q/Q-transpose inverse sketch; engineering gate, not a uniform stability proof"}};
 }
-} // namespace tqr
+} // namespace qr_omega

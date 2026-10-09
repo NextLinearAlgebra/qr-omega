@@ -15,8 +15,8 @@ and 3×TF32. QR-Ω combines hierarchical Householder QR (HQR) with 2.5D scheduli
   `c` that satisfies `c² ≤ p_i p_j`. On 8 GPUs a 2×4 grid carries W with `c = 2`; inside a GPU, W, Z
   and the tree updates are replicated over blocks and warps. Every run reports the carriers it used.
 * **Tuned schedules.** Tree shape, `c` of every product, GPU grid, aggregation, look-ahead and
-  tails are tuned by measurement and kept in `reproducers/presets.json` for every matrix size,
-  precision and GPU count in the paper.
+  tails are tuned by measurement and kept in `reproducers/presets.json` for every measured matrix
+  shape, precision and GPU count.
 
 Ordered traffic and collectives use the low-latency NCCL of Shen et al.,
 [Every Microsecond Matters](https://arxiv.org/abs/2607.16100); independent triangle publications use
@@ -24,81 +24,101 @@ NVSHMEM. [docs/replication.md](docs/replication.md) lists what each replication 
 
 ## Results
 
-NVIDIA H200 GPUs in DGX nodes. Each time is the median of the timed repetitions of two validated runs
-of the cell's configuration (`reproducers/presets.json`). The references are cuSOLVER (one GPU),
-cuSOLVERMp, MAGMA and SLATE, each tuned for every size (on eight GPUs, tuned at n = 131,072 and its
-two best configurations measured at every size); TF32 and 3×TF32 are compared with the references'
-FP32. The figures are in `plots/figures`.
+All measurements ran on NVIDIA DGX H200 nodes. QR-Ω is compared with the fastest tuned configuration
+of cuSOLVER (one GPU), cuSOLVERMp, MAGMA and SLATE; TF32 and 3×TF32 are compared with the
+references' FP32. The figures of the paper are drawn from the recorded measurements:
 
-| GPUs | Cells | Speedup over the fastest reference |
+| Paper | File in `plots/figures/` | Content |
 | --- | --- | --- |
-| 1 | 81: n = 256 to 131,072, four modes | FP64 1.01–1.92, FP32 0.98–2.24, TF32 1.75–5.34, 3×TF32 1.52–2.72 |
-| 2, 3 | 6: n = 229,376, FP32/TF32/3×TF32 | FP32 1.12, TF32 5.71–6.07, 3×TF32 2.13–2.15 |
-| 4 | 25: n = 131,072 to 327,680 | FP64 1.12–1.21, FP32 1.12–1.22, TF32 4.71–5.27, 3×TF32 2.19–2.29 |
-| 8 (2×4 grid) | 27: n = 131,072 to 327,680 | FP64 1.02–1.06, FP32 1.11–1.12, TF32 3.45–4.21, 3×TF32 1.89–1.99 |
+| Fig. 2 | `fig02-motivation` | FP64 throughput of the QR libraries, DGEMM and the FP64 peak, one GPU |
+| Figs. 6, 7 | `fig06-single-perf`, `fig07-single-acc` | One GPU, n = 256 to 131,072: speedup, throughput, errors |
+| Figs. 8, 9 | `fig08-multi8-perf`, `fig09-multi8-acc` | Eight GPUs, n = 131,072 to 327,680 |
+| Fig. 10 | `fig10-tall-skinny` | Eleven tall shapes, m up to 4,194,304, one GPU |
+| Fig. 11 | `fig11-scaling` | Strong scaling at n = 229,376 on 2, 3, 4 and 8 GPUs |
 
-The largest factorizations run at 47.2 TFLOP/s (FP64, one GPU, n = 131,072), 177.5 (FP64, four GPUs,
-n = 229,376), 317 (FP64, eight GPUs, n = 294,912) and 1,327 (TF32, eight GPUs, n = 327,680).
+On one GPU, QR-Ω factors n = 131,072 in 63.6 s in FP64 (47.2 TFLOP/s) and in 12.1 s in TF32
+(249 TFLOP/s, 5.3× the fastest FP32 reference); below n ≈ 32,000 it is 1.4–2.2× faster than
+cuSOLVER in FP64 and FP32. On eight GPUs it is 1.02–1.06× faster than cuSOLVERMp in FP64 and
+1.11–1.12× in FP32, and reaches 317 TFLOP/s in FP64 and 1,327 TFLOP/s in TF32.
+`plots/figures/paper-numbers.csv` recomputes every number the paper quotes from the data.
 
-## Build
+## Requirements
 
-Requires Hopper (`sm_90a`), CUDA 13.0+ (measured with 13.0.2), GCC 13, CMake 3.25+ and Python 3.11+.
+* NVIDIA Hopper GPUs (`sm_90a`); several GPUs must be in one node (measured: NVLink 4 through
+  NVSwitch).
+* CUDA 13.0 or newer (measured: 13.0.2), GCC 13, CMake 3.25+, Python 3.11+.
+* Several GPUs: Open MPI (measured: 5.0.10), NVSHMEM 3.6.5 and the
+  [low-latency NCCL](https://github.com/ss16118/low-latency-nccl) at commit
+  `5357eff325eddf978137de7140195a5568fa8a11`.
+* References (optional): cuSOLVERMp 0.8.0 with stock NCCL, MAGMA 2.10.0 (ILP64, with MKL), and
+  SLATE 2025.05.28; cuSOLVER comes with CUDA.
+* Figures (no GPU): the matplotlib and numpy versions of `plots/requirements.txt`.
+
 CMake fetches the pinned CUTLASS and nlohmann/json; `CUTLASS_ROOT` and `JSON_INCLUDE_DIR` select
 existing copies.
 
-```sh
-cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
-cmake --build build --parallel 16
-```
+## Build
 
-For several GPUs, install Open MPI, NVSHMEM 3.6.5 and the
-[low-latency NCCL](https://github.com/ss16118/low-latency-nccl) at commit
-`5357eff325eddf978137de7140195a5568fa8a11`, put that NCCL first on `LD_LIBRARY_PATH`, and configure:
+The presets build into `build/`. One GPU: the driver, its GPU tests and the host tests, then all of
+them run:
 
 ```sh
-cmake -S . -B build -DQR_OMEGA_BUILD_MULTI_GPU=ON -DQR_OMEGA_BUILD_GPU_TESTS=ON \
-  -DNCCL_ROOT=/path/to/low-latency-nccl/build -DNVSHMEM_ROOT=/path/to/nvshmem \
-  -DCMAKE_PREFIX_PATH=/path/to/mpi
-cmake --build build --parallel 16
+cmake --workflow --preset one-gpu
 ```
+
+The GPUs of a node, with the dependency prefixes in the environment:
+
+```sh
+export NCCL_ROOT=/path/to/low-latency-nccl/build NVSHMEM_ROOT=/path/to/nvshmem
+cmake --preset node && cmake --build --preset node
+```
+
+The `paper` preset also builds the reference adapters from `MAGMA_ROOT`, `MKLROOT`, `SLATE_ROOT`,
+`CUSOLVERMP_ROOT` and `REFERENCE_NCCL_ROOT` (stock NCCL); see
+[reproducers/README.md](reproducers/README.md). At run time, put the low-latency NCCL first on
+`LD_LIBRARY_PATH` for QR-Ω and stock NCCL first for cuSOLVERMp.
 
 ## Reproduce
 
-Run timings on reserved GPUs at fixed clocks, with nothing else on the node.
+Run timings on reserved GPUs, with nothing else on the node. The times are estimates for H200 GPUs.
 
-```sh
-ctest --test-dir build -L gpu --output-on-failure            # GPU correctness tests
-python3 -m unittest discover -s tests                         # host tests
-python3 reproducers/runner.py --gpus 8 --sizes 131072 --plan  # print the 8-GPU commands
-```
+1. **Tests** (about 3 minutes on one GPU). `ctest --preset host` checks the recorded data and the
+   runner without a GPU; `ctest --preset gpu` checks the panels, the updates, the reconstruction and
+   the factorization on one GPU. On several GPUs,
+   `python3 tests/hierarchy_gpu.py build/bin/qr_omega_multi --gpus 8` and
+   `mpirun -np 8 build/bin/qr_omega_transport_tests` check the distributed hierarchy and the
+   transport.
+2. **Figures and quoted numbers** (seconds, no GPU). From the recorded measurements:
 
-Every measurement of the paper on one node with eight H200 GPUs, each cell with its recorded options:
+   ```sh
+   python3 -m venv .venv && .venv/bin/pip install -r plots/requirements.txt
+   .venv/bin/python plots/reproduce.py
+   ```
 
-```sh
-for p in 1 2 3 4 8; do python3 reproducers/runner.py --gpus $p --suite paper --output results/p$p; done
-```
+   This assembles `plots/data/paper.csv`, draws the figures into `plots/figures/` (bit for bit those
+   of the paper with the pinned versions) and writes `plots/figures/paper-numbers.csv`, which lists
+   every number the paper quotes next to the value recomputed from the data.
+3. **Measurements.** `reproducers/runner.py` runs measured cells again with their recorded options
+   and checks every run:
 
-That is 139 cells (81 on one GPU, 3 each on two and three, 25 on four, 27 on eight) and takes about
-six hours, most of it in the largest four- and eight-GPU matrices; `--sizes` and `--modes` select
-subsets, and the default `--suite headlines` runs the cells the paper quotes. Each run checks the
-residual `max_J ‖A_J − (QR)_J‖_F / ‖A_J‖_F` over the 512-column blocks J of all n columns and the
-orthogonality error `‖Qᵀ(QX) − X‖_F / ‖X‖_F` for 16 random vectors X, reports how every product was
-carried, and fails if it is more than 4% slower than its recorded time.
+   ```sh
+   python3 reproducers/runner.py --suite smoke     # every mode at n = 4,096 (under a minute)
+   python3 reproducers/runner.py                   # the one-GPU cells the paper quotes (20 minutes)
+   python3 reproducers/runner.py --suite tall      # the 44 tall cells (5 minutes)
+   python3 reproducers/runner.py --gpus 8          # the eight-GPU cells the paper quotes (20 minutes)
+   python3 reproducers/runner.py --gpus 8 --library cuSOLVERMp --sizes 131072
+   ```
 
-The figures come from the measured cells and the reference measurements
-(`plots/data/references.csv`: cuSOLVER, cuSOLVERMp, MAGMA and SLATE, each tuned for every size;
-TF32 and 3×TF32 are compared with their FP32):
+   `--suite all` runs every measured cell of a GPU count: about 40 minutes on one GPU, 1.5 hours on
+   eight, and 2 hours on four; the references take longer (cuSOLVERMp, MAGMA and SLATE about 6 hours
+   on eight GPUs). `--list` prints the measured cells and `--plan` the commands.
 
-```sh
-python3 -m venv .venv && .venv/bin/pip install -r plots/requirements.txt
-python3 plots/collect.py                 # plots/data/paper.csv
-.venv/bin/python plots/reproduce.py      # plots/figures/*.pdf and headline-results.csv
-```
-
-The schedules are tuned by hand: each preset in `reproducers/presets.json` records the driver
-options of its cell, and [docs/code-map.md](docs/code-map.md) lists them. A new size starts from the
-preset of a neighbouring size. [reproducers/README.md](reproducers/README.md) covers the reference
-adapters and the measurement protocol.
+**Expected results.** Every QR-Ω run passes its residual and orthogonality checks, carries its
+products within the 2.5D bound, and finishes within 4% of its recorded time (`--max-slowdown`).
+The runner writes the record, log and command of every cell and a manifest with the time over the
+recorded time to `results/<UTC time>/`, never overwrites earlier results, and exits nonzero if a
+cell fails. [reproducers/README.md](reproducers/README.md) describes the measurement protocol and
+the reference adapters.
 
 ## Read the code
 
@@ -110,10 +130,11 @@ adapters and the measurement protocol.
 | `include/qr_omega/householder_reconstruct.cuh` | Thin Q of a tree and its reconstruction into compact WY, in one launch |
 | `include/qr_omega/update.cuh`, `tree_update.cuh` | The updates and the carrier of every product |
 | `include/qr_omega/carrier*.{hpp,cuh}` | The carried products on CUDA cores and tensor cores, and the 2.5D bound |
-| `include/qr_omega/transport.cuh`, `paper_collectives.cuh` | Low-latency NCCL and NVSHMEM operations between GPUs |
+| `include/qr_omega/transport.cuh`, `low_latency_collectives.cuh` | Low-latency NCCL and NVSHMEM operations between GPUs |
 | `reproducers/` | Measured cells, their runner, and the reference adapters |
-| `plots/` | Measurements and the scripts that draw the figures |
-| `tests/` | Host contracts, GPU panel, update, reconstruction and transport tests |
+| `plots/` | The measurements, the figures and the numbers of the paper |
+| `tests/` | Host tests of the data and the runner; GPU tests of panels, updates, reconstruction and transport |
 
-Panel kernels adapt gau.nernst's GPU MODE QR-v2 submission 844219; FP64 carried updates follow KAMI;
-tensor-core kernels use CUTLASS/CuTe. See [third-party notices](third_party/README.md).
+[docs/code-map.md](docs/code-map.md) follows a factorization through the code and lists the driver
+options. Panel kernels adapt gau.nernst's GPU MODE QR-v2 submission 844219; FP64 carried updates
+follow KAMI; tensor-core kernels use CUTLASS/CuTe. See [third-party notices](third_party/README.md).

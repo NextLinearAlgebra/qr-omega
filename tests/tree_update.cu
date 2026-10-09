@@ -4,7 +4,7 @@
 #include <iostream>
 #include <numeric>
 
-using namespace tqr;
+using namespace qr_omega;
 using panel_reference::require;
 
 namespace {

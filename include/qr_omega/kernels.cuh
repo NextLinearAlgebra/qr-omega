@@ -3,7 +3,7 @@
 // factors, the copies of a TT merge, and the input and error kernels shared with the reference
 // adapters.
 #include "common.hpp"
-namespace tqr {
+namespace qr_omega {
 // What a factorization reports: success, a non-finite input, or a result FP32 cannot represent.
 enum DeviceStatus { OK = 0, NONFINITE_INPUT = 1, UNREPRESENTABLE_RESULT = 2 };
 
@@ -498,4 +498,4 @@ template <class T> double relative_error_ratio(const std::vector<T> &partials) {
     }
     return den ? diff / den : diff * scale;
 }
-} // namespace tqr
+} // namespace qr_omega

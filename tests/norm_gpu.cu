@@ -1,6 +1,6 @@
 #include "kernels.cuh"
 #include <iomanip>
-using namespace tqr;
+using namespace qr_omega;
 
 template <class T> void check_norms() {
     const int rows = 259, cols = 129, lda = rows + 5, ldb = rows + 7;

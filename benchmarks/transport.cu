@@ -6,7 +6,7 @@
 #include <cublas_v2.h>
 #include <functional>
 
-using namespace tqr;
+using namespace qr_omega;
 
 namespace {
 void blas(cublasStatus_t status) {
@@ -157,7 +157,7 @@ template <class T> void run(Context &ctx, const Arguments &a) {
                        {"participants", op == 0  ? grid.pc
                                         : op < 4 ? grid.pr
                                                  : 2},
-                       {"backend", op == 5 ? "NVSHMEM" : "paper-nccl-LLBuffer"}};
+                       {"backend", op == 5 ? "NVSHMEM" : "low-latency-nccl-LLBuffer"}};
         const std::vector<std::string> phases{"communication", "compute", "serial", "overlap"};
         for (int phase = 0; phase < 4; ++phase) {
             std::vector<double> device_us, host_us;

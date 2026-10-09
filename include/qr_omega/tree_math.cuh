@@ -5,7 +5,7 @@
 // b[u] holds B(4t + u, g), and d[2r + j] holds C(2g + r, 2t + j).
 #include "carrier_kami.cuh"
 
-namespace tqr {
+namespace qr_omega {
 template <class T> struct alignas(2 * sizeof(T)) TreePair {
     T x, y;
 };
@@ -110,4 +110,4 @@ template <class T, class F> void with_tree_math(F &&f) {
     }
     f(TreeMath<T>{});
 }
-} // namespace tqr
+} // namespace qr_omega

@@ -11,13 +11,13 @@
 #include <map>
 #include <tuple>
 
-namespace tqr {
+namespace qr_omega {
 inline void lt_check(cublasStatus_t s, const char *where) {
     if (s != CUBLAS_STATUS_SUCCESS)
         throw std::runtime_error(std::string(where) + ": cuBLASLt status " +
                                  std::to_string(int(s)));
 }
-#define LT(x) ::tqr::lt_check((x), #x)
+#define LT(x) ::qr_omega::lt_check((x), #x)
 
 // The output tiles of the algorithms the carrier accepts.
 struct VendorTile {
@@ -186,4 +186,4 @@ template <class T> class VendorProduct {
         return false;
     }
 };
-} // namespace tqr
+} // namespace qr_omega

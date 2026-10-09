@@ -29,11 +29,7 @@ def main():
     )
     args = parser.parse_args()
     binary = args.binary.resolve()
-    prefix = (
-        []
-        if args.gpus == 1
-        else ["mpirun", "--bind-to", "none", "--oversubscribe", "-np", str(args.gpus)]
-    )
+    prefix = [] if args.gpus == 1 else ["mpirun", "--bind-to", "none", "--oversubscribe", "-np", str(args.gpus)]
     grids = sorted({1, args.gpus, 2 if args.gpus in (4, 8) else 1})
     if args.panel_format == "wy":
         # A compact-WY panel over grid rows sums its W over them: pr^2 <= pc keeps that bounded.
@@ -106,9 +102,7 @@ def main():
                     assert record["carriers"]["bounded"] == record["carriers"]["products"], record
                     if args.gpus > 1:
                         comm = record["communication"]
-                        assert comm["nccl_commit"] == "5357eff325eddf978137de7140195a5568fa8a11", (
-                            record
-                        )
+                        assert comm["nccl_commit"] == "5357eff325eddf978137de7140195a5568fa8a11", record
                         assert comm["unordered_backend"] == "NVSHMEM", record
                         if grid > 1:
                             assert comm["unordered_publications"] > 0, record

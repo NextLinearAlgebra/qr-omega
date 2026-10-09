@@ -10,43 +10,43 @@
 #include <nccl_device/ll_buffer.h>
 #include <nccl_device/impl/ll_buffer__funcs.h>
 
-namespace tqr {
-inline void paper_nccl_check(ncclResult_t result) {
+namespace qr_omega {
+inline void nccl_check(ncclResult_t result) {
     if (result != ncclSuccess)
-        throw std::runtime_error(std::string("paper NCCL: ") + ncclGetErrorString(result));
+        throw std::runtime_error(std::string("low-latency NCCL: ") + ncclGetErrorString(result));
 }
 
-__device__ inline uint64_t paper_acquire(const uint64_t *p) {
+__device__ inline uint64_t acquire_load(const uint64_t *p) {
     uint64_t value;
     asm volatile("ld.acquire.sys.global.u64 %0,[%1];" : "=l"(value) : "l"(p) : "memory");
     return value;
 }
-__device__ inline void paper_release(uint64_t *p, uint64_t value) {
+__device__ inline void release_store(uint64_t *p, uint64_t value) {
     asm volatile("st.release.sys.global.u64 [%0],%1;" ::"l"(p), "l"(value) : "memory");
 }
 
 // One registered window and device communicator. Construction and destruction happen outside
 // factorization timing; all communication within it is submitted to the caller's CUDA stream.
-class PaperWindow {
+class LowLatencyWindow {
     ncclComm_t comm;
     void *memory = nullptr;
 
   public:
     ncclWindow_t window = nullptr;
     ncclDevComm device{};
-    PaperWindow(ncclComm_t comm_, size_t bytes) : comm(comm_) {
-        paper_nccl_check(ncclMemAlloc(&memory, bytes));
+    LowLatencyWindow(ncclComm_t comm_, size_t bytes) : comm(comm_) {
+        nccl_check(ncclMemAlloc(&memory, bytes));
         CU(cudaMemset(memory, 0, bytes));
-        paper_nccl_check(
-            ncclCommWindowRegister(comm, memory, bytes, &window, NCCL_WIN_COLL_SYMMETRIC));
+        nccl_check(ncclCommWindowRegister(comm, memory, bytes, &window, NCCL_WIN_COLL_SYMMETRIC));
         ncclDevCommRequirements req = NCCL_DEV_COMM_REQUIREMENTS_INITIALIZER;
         req.lsaBarrierCount = 0;
-        paper_nccl_check(ncclDevCommCreate(comm, &req, &device));
+        nccl_check(ncclDevCommCreate(comm, &req, &device));
         if (ncclTeamLsa(device).nRanks != device.nRanks)
-            throw std::runtime_error("paper NCCL requires one load/store-accessible GPU team");
+            throw std::runtime_error(
+                "low-latency NCCL requires one load/store-accessible GPU team");
     }
-    PaperWindow(const PaperWindow &) = delete;
-    ~PaperWindow() {
+    LowLatencyWindow(const LowLatencyWindow &) = delete;
+    ~LowLatencyWindow() {
         if (std::uncaught_exceptions())
             return;
         ncclDevCommDestroy(comm, &device);
@@ -55,25 +55,25 @@ class PaperWindow {
     }
 };
 
-enum class PaperOp { Broadcast, Sum, Maximum, Gather };
+enum class CollectiveOp { Broadcast, Sum, Maximum, Gather };
 
-template <class T, PaperOp Op>
-__global__ void paper_collective(ncclDevComm comm, ncclWindow_t window, int pitch,
-                                 size_t progress_at, uint64_t sequence, const T *input, T *output,
-                                 int count, int root) {
+template <class T, CollectiveOp Op>
+__global__ void low_latency_collective(ncclDevComm comm, ncclWindow_t window, int pitch,
+                                       size_t progress_at, uint64_t sequence, const T *input,
+                                       T *output, int count, int root) {
     const auto team = ncclTeamLsa(comm);
     const ncclSymPtr<uint64_t> progress(window, progress_at);
     // Two LL buffers: writers may advance one episode ahead, but cannot overwrite a buffer
     // until all readers of its previous use have retired. No host rendezvous is needed.
     if (threadIdx.x == 0 && sequence > 2)
         for (int p = 0; p < comm.nRanks; ++p)
-            while (paper_acquire(progress.localPtr() + p) < sequence - 2) {
+            while (acquire_load(progress.localPtr() + p) < sequence - 2) {
             }
     __syncthreads();
     ncclLLBuffer<ncclLL, false> ll(ncclSymPtr<char>(window, 0), pitch, 0, 2, ncclMultimemHandle{});
     ll.setSubBuffer(unsigned(sequence & 1));
     for (int i = blockIdx.x * blockDim.x + threadIdx.x; i < count; i += gridDim.x * blockDim.x) {
-        if constexpr (Op == PaperOp::Broadcast) {
+        if constexpr (Op == CollectiveOp::Broadcast) {
             if (comm.rank == root)
                 for (int p = 0; p < comm.nRanks; ++p)
                     ll.send<T>(team, p, i, input[i]);
@@ -85,14 +85,14 @@ __global__ void paper_collective(ncclDevComm comm, ncclWindow_t window, int pitc
             T sum = T(0);
             for (int p = 0; p < comm.nRanks; ++p) {
                 const T part = ll.recv<T, true>(p * count + i);
-                if constexpr (Op == PaperOp::Gather)
+                if constexpr (Op == CollectiveOp::Gather)
                     output[p * count + i] = part;
-                else if constexpr (Op == PaperOp::Sum)
+                else if constexpr (Op == CollectiveOp::Sum)
                     sum = p == 0 ? part : sum + part;
                 else
                     sum = p == 0 || part > sum ? part : sum;
             }
-            if constexpr (Op != PaperOp::Gather)
+            if constexpr (Op != CollectiveOp::Gather)
                 output[i] = sum;
         }
     }
@@ -106,37 +106,38 @@ __global__ void paper_collective(ncclDevComm comm, ncclWindow_t window, int pitc
         if (atomicAdd(done, 1u) == gridDim.x - 1) {
             *done = 0;
             for (int p = 0; p < comm.nRanks; ++p)
-                paper_release(progress.peerPtr(team, p) + comm.rank, sequence);
+                release_store(progress.peerPtr(team, p) + comm.rank, sequence);
         }
     }
 }
 
-class PaperTeam {
+class CollectiveTeam {
     const int ranks;
     const size_t capacity, progress_at;
     const int pitch;
-    PaperWindow arena;
+    LowLatencyWindow arena;
     uint64_t sequence = 0;
     Event last;
 
   public:
-    PaperTeam(ncclComm_t comm, int ranks_, size_t bytes, bool broadcast)
+    CollectiveTeam(ncclComm_t comm, int ranks_, size_t bytes, bool broadcast)
         : ranks(ranks_), capacity(bytes), progress_at(4 * bytes * (broadcast ? 1 : ranks)),
           pitch(int(bytes * (broadcast ? 1 : ranks))),
           arena(comm, progress_at + size_t(ranks) * sizeof(uint64_t) + 16) {
         if (bytes > size_t(INT_MAX / 2) / ranks || bytes % 8)
-            throw std::runtime_error("paper collective capacity must fit its aligned LL window");
+            throw std::runtime_error(
+                "low-latency collective capacity must fit its aligned LL window");
     }
-    template <class T, PaperOp Op>
+    template <class T, CollectiveOp Op>
     void run(const T *input, T *output, size_t count, int root, cudaStream_t stream) {
         if (count * sizeof(T) > capacity || count > size_t(INT_MAX / ranks))
-            throw std::runtime_error("paper collective exceeds its window");
+            throw std::runtime_error("low-latency collective exceeds its window");
         if (!count)
             return;
         if (sequence)
             last.wait(stream);
         ++sequence;
-        paper_collective<T, Op><<<std::min(32, ceildiv(int(count), 256)), 256, 0, stream>>>(
+        low_latency_collective<T, Op><<<std::min(32, ceildiv(int(count), 256)), 256, 0, stream>>>(
             arena.device, arena.window, pitch, progress_at, sequence, input, output, int(count),
             root);
         CU(cudaGetLastError());
@@ -148,14 +149,14 @@ class PaperTeam {
 // consumed slots and then acknowledges them through the NCCL window. Unrelated pairs need
 // not participate, and there is no global epoch or global barrier.
 template <bool Send>
-__global__ void paper_exchange(ncclDevComm comm, ncclWindow_t window, int capacity,
-                               size_t credits_at, int sender, int receiver, uint64_t sequence,
-                               const uint32_t *input, uint32_t *output, int count) {
+__global__ void ordered_exchange(ncclDevComm comm, ncclWindow_t window, int capacity,
+                                 size_t credits_at, int sender, int receiver, uint64_t sequence,
+                                 const uint32_t *input, uint32_t *output, int count) {
     const auto team = ncclTeamLsa(comm);
     const ncclSymPtr<uint64_t> credits(window, credits_at);
     if constexpr (Send) {
         if (threadIdx.x == 0)
-            while (paper_acquire(credits.localPtr() + receiver) < sequence - 1) {
+            while (acquire_load(credits.localPtr() + receiver) < sequence - 1) {
             }
         __syncthreads();
     }
@@ -174,22 +175,22 @@ __global__ void paper_exchange(ncclDevComm comm, ncclWindow_t window, int capaci
             auto *done = reinterpret_cast<unsigned *>(credits.localPtr() + comm.nRanks) + sender;
             if (atomicAdd(done, 1u) == gridDim.x - 1) {
                 *done = 0;
-                paper_release(credits.peerPtr(team, sender) + receiver, sequence);
+                release_store(credits.peerPtr(team, sender) + receiver, sequence);
             }
         }
     }
 }
 
-class PaperLinks {
+class OrderedLinks {
     const int rank, ranks, capacity;
     const size_t credits_at;
-    PaperWindow arena;
+    LowLatencyWindow arena;
     std::vector<uint64_t> sent, received;
     Event last;
     bool used = false;
 
   public:
-    PaperLinks(ncclComm_t comm, int rank_, int ranks_, size_t bytes)
+    OrderedLinks(ncclComm_t comm, int rank_, int ranks_, size_t bytes)
         : rank(rank_), ranks(ranks_), capacity(int(bytes)), credits_at(2 * bytes * ranks),
           arena(comm, credits_at + size_t(ranks) * 16), sent(ranks, 0), received(ranks, 0) {}
     void exchange(int sender, int receiver, const void *source, void *destination, size_t bytes,
@@ -207,11 +208,11 @@ class PaperLinks {
             const int count = int(bytes / sizeof(uint32_t)),
                       blocks = std::max(1, std::min(16, ceildiv(count, 256)));
             if (rank == sender)
-                paper_exchange<true><<<blocks, 256, 0, stream>>>(
+                ordered_exchange<true><<<blocks, 256, 0, stream>>>(
                     arena.device, arena.window, capacity, credits_at, sender, receiver,
                     ++sent[receiver], static_cast<const uint32_t *>(source), nullptr, count);
             else
-                paper_exchange<false><<<blocks, 256, 0, stream>>>(
+                ordered_exchange<false><<<blocks, 256, 0, stream>>>(
                     arena.device, arena.window, capacity, credits_at, sender, receiver,
                     ++received[sender], nullptr, static_cast<uint32_t *>(destination), count);
             CU(cudaGetLastError());
@@ -219,4 +220,4 @@ class PaperLinks {
         last.record(stream);
     }
 };
-} // namespace tqr
+} // namespace qr_omega

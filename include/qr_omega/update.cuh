@@ -12,7 +12,7 @@
 #include "tree_update.cuh"
 #include <functional>
 
-namespace tqr {
+namespace qr_omega {
 // Requested replications c of the products, each lowered per product to the 2.5D bound. W reaches
 // its c with the two slices of a block and c / 2 groups of blocks; Z and D always split the
 // contraction between the two slices of a block. Inside a GPU's elimination tree the W of the
@@ -654,4 +654,4 @@ template <class T> class Updater {
                                  cudaMemcpyDeviceToDevice, st));
     }
 };
-} // namespace tqr
+} // namespace qr_omega

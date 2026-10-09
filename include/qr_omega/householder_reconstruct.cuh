@@ -7,7 +7,7 @@
 // This procedure operates on Q, never on the input Gram matrix or A - R.
 #include "tree_update.cuh"
 
-namespace tqr {
+namespace qr_omega {
 constexpr int reconstruction_width = 64;
 
 // The correctly rounded reciprocal: the value of 1 / x, without the general division.
@@ -609,4 +609,4 @@ void thin_q_reconstruct(const DomainTree &t, int qc, const T *vp, int ldp, const
     sync.base += unsigned(blocks);
     CU(cudaGetLastError());
 }
-} // namespace tqr
+} // namespace qr_omega

@@ -1,14 +1,14 @@
 {
-  "input_sha256": "e6a0470ed0d9eb83a6e9d24f763a8eba293ddb8b62ee9120f987d54e7ebcb019",
-  "rows": 383,
+  "presets_sha256": "e1a01b1c671ecdf8ddbc54016ecc5d10cc7759274ca832f0672aaf08388383ed",
+  "references_sha256": "5880c4b4acadc2df26c51c2c51d34c5fdead20d5ea2ed06fdf28cd1a642862ca",
+  "rows": 493,
   "figures": [
-    "multi4-acc.pdf",
-    "multi4-perf.pdf",
-    "multi8-acc.pdf",
-    "multi8-perf.pdf",
-    "scaling.pdf",
-    "single-acc.pdf",
-    "single-perf.pdf"
-  ],
-  "headline_rows": 40
+    "fig02-motivation.pdf",
+    "fig06-single-perf.pdf",
+    "fig07-single-acc.pdf",
+    "fig08-multi8-perf.pdf",
+    "fig09-multi8-acc.pdf",
+    "fig10-tall-skinny.pdf",
+    "fig11-scaling.pdf"
+  ]
 }

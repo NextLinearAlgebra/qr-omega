@@ -3,20 +3,20 @@
 // collectives and ordered exchanges. Independent one-sided publications use NVSHMEM. Both paths
 // retain device-side producer/consumer and buffer-reuse dependencies without host rendezvous.
 #include "kernels.cuh"
-#ifdef TQR_MULTI
+#ifdef QR_OMEGA_MULTI_GPU
 #include <mpi.h>
 #define NVSHMEMI_HOST_ONLY
 #include <nvshmem_host.h>
 #include <nccl.h>
-#include "paper_collectives.cuh"
+#include "low_latency_collectives.cuh"
 #endif
-namespace tqr {
+namespace qr_omega {
 
 // One process per GPU. Under MPI every rank must run on the same node and on a different GPU.
 struct Context {
     int rank = 0, size = 1, device = 0;
     Context() {
-#ifdef TQR_MULTI
+#ifdef QR_OMEGA_MULTI_GPU
         int provided;
         if (MPI_Init_thread(nullptr, nullptr, MPI_THREAD_FUNNELED, &provided) != MPI_SUCCESS)
             throw std::runtime_error("MPI_Init_thread failed");
@@ -37,7 +37,7 @@ struct Context {
             throw std::runtime_error("fewer visible GPUs than ranks");
 #endif
         CU(cudaSetDevice(device));
-#ifdef TQR_MULTI
+#ifdef QR_OMEGA_MULTI_GPU
         const cudaDeviceProp &prop = device_properties();
         std::vector<char> ids(size * sizeof(prop.uuid));
         MPI_Allgather(prop.uuid.bytes, sizeof(prop.uuid), MPI_CHAR, ids.data(), sizeof(prop.uuid),
@@ -49,26 +49,26 @@ struct Context {
 #endif
     }
     ~Context() {
-#ifdef TQR_MULTI
+#ifdef QR_OMEGA_MULTI_GPU
         // While an exception unwinds, main reports it and aborts the job instead.
         if (!std::uncaught_exceptions())
             MPI_Finalize();
 #endif
     }
     void barrier() const {
-#ifdef TQR_MULTI
+#ifdef QR_OMEGA_MULTI_GPU
         MPI_Barrier(MPI_COMM_WORLD);
 #endif
     }
     // Largest value over the ranks.
     double max(double value) const {
-#ifdef TQR_MULTI
+#ifdef QR_OMEGA_MULTI_GPU
         MPI_Allreduce(MPI_IN_PLACE, &value, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
 #endif
         return value;
     }
     int max(int value) const {
-#ifdef TQR_MULTI
+#ifdef QR_OMEGA_MULTI_GPU
         MPI_Allreduce(MPI_IN_PLACE, &value, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
 #endif
         return value;
@@ -77,20 +77,20 @@ struct Context {
         return -max(-value);
     }
     uint64_t sum(uint64_t value) const {
-#ifdef TQR_MULTI
+#ifdef QR_OMEGA_MULTI_GPU
         MPI_Allreduce(MPI_IN_PLACE, &value, 1, MPI_UINT64_T, MPI_SUM, MPI_COMM_WORLD);
 #endif
         return value;
     }
     double sum(double value) const {
-#ifdef TQR_MULTI
+#ifdef QR_OMEGA_MULTI_GPU
         MPI_Allreduce(MPI_IN_PLACE, &value, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
 #endif
         return value;
     }
     // Ends the job on every rank after an error.
     static void abort() {
-#ifdef TQR_MULTI
+#ifdef QR_OMEGA_MULTI_GPU
         int initialized = 0, finalized = 0;
         MPI_Initialized(&initialized);
         if (initialized)
@@ -101,12 +101,12 @@ struct Context {
     }
 };
 
-#ifdef TQR_MULTI
+#ifdef QR_OMEGA_MULTI_GPU
 inline void nccl_check(ncclResult_t e, const char *where) {
     if (e != ncclSuccess)
         throw std::runtime_error(std::string(where) + ": " + ncclGetErrorString(e));
 }
-#define NC(x) ::tqr::nccl_check((x), #x)
+#define NC(x) ::qr_omega::nccl_check((x), #x)
 
 template <class T> ncclDataType_t nccl_type() {
     return sizeof(T) == 4 ? ncclFloat : ncclDouble;
@@ -127,8 +127,8 @@ class Transport {
     std::vector<uint64_t> unordered_sent, unordered_received;
     ncclComm_t comm = nullptr, column_comm = nullptr, row_comm = nullptr;
     int column_size = 1;
-    std::unique_ptr<PaperTeam> row_team, column_team;
-    std::unique_ptr<PaperLinks> links;
+    std::unique_ptr<CollectiveTeam> row_team, column_team;
+    std::unique_ptr<OrderedLinks> links;
     uint64_t ordered_copies = 0, collectives = 0, unordered_copies = 0;
     char *inbox = nullptr, *outbox = nullptr;
     uint64_t *signals = nullptr, *credits = nullptr;
@@ -147,9 +147,9 @@ class Transport {
         if (column_size > 1) {
             ++collectives;
             if (op == ncclSum)
-                column_team->run<T, PaperOp::Sum>(source, destination, count, 0, stream);
+                column_team->run<T, CollectiveOp::Sum>(source, destination, count, 0, stream);
             else
-                column_team->run<T, PaperOp::Maximum>(source, destination, count, 0, stream);
+                column_team->run<T, CollectiveOp::Maximum>(source, destination, count, 0, stream);
         } else if (source != destination)
             CU(cudaMemcpyAsync(destination, source, count * sizeof(T), cudaMemcpyDeviceToDevice,
                                stream));
@@ -166,7 +166,7 @@ class Transport {
         unordered_sent.resize(ctx.size);
         unordered_received.resize(ctx.size);
         // NVSHMEM holds only the independent publication inboxes. Ordered channels and their
-        // reuse metadata belong to the paper NCCL path.
+        // reuse metadata belong to the low-latency NCCL path.
         size_t heap = publication_capacity * (size_t(ctx.size) + 1) + (size_t(64) << 20);
         if (heap > (size_t(1) << 30))
             setenv("NVSHMEM_SYMMETRIC_SIZE", std::to_string(heap).c_str(), 0);
@@ -206,13 +206,13 @@ class Transport {
         NC(ncclCommCount(column_comm, &column_size));
         NC(ncclCommSplit(comm, grid_row, grid_col, &row_comm, nullptr));
         if (grid_cols > 1)
-            row_team = std::make_unique<PaperTeam>(
+            row_team = std::make_unique<CollectiveTeam>(
                 row_comm, grid_cols, *std::max_element(channel_bytes.begin(), channel_bytes.end()),
                 true);
         if (column_size > 1)
-            column_team = std::make_unique<PaperTeam>(column_comm, column_size,
-                                                      (collective_bytes + 7) / 8 * 8, false);
-        links = std::make_unique<PaperLinks>(comm, ctx.rank, ctx.size, publication_capacity);
+            column_team = std::make_unique<CollectiveTeam>(column_comm, column_size,
+                                                           (collective_bytes + 7) / 8 * 8, false);
+        links = std::make_unique<OrderedLinks>(comm, ctx.rank, ctx.size, publication_capacity);
         ctx.barrier();
     }
     ~Transport() {
@@ -258,8 +258,8 @@ class Transport {
             throw std::runtime_error("row share requires whole scalar words");
         ++collectives;
         auto *mine = static_cast<uint32_t *>(slot(channel, s));
-        row_team->run<uint32_t, PaperOp::Broadcast>(mine, mine, bytes / sizeof(uint32_t), root,
-                                                    stream);
+        row_team->run<uint32_t, CollectiveOp::Broadcast>(mine, mine, bytes / sizeof(uint32_t), root,
+                                                         stream);
     }
     // Matching ordered exchange. Only the sender and receiver launch a kernel.
     void publish(int sender, int receiver, const void *source, void *destination, size_t bytes) {
@@ -316,14 +316,14 @@ class Transport {
             return;
         if (column_size > 1) {
             ++collectives;
-            column_team->run<T, PaperOp::Gather>(source, destination, count, 0, stream);
+            column_team->run<T, CollectiveOp::Gather>(source, destination, count, 0, stream);
         } else if (source != destination)
             CU(cudaMemcpyAsync(destination, source, count * sizeof(T), cudaMemcpyDeviceToDevice,
                                stream));
     }
     json report() const {
-        return {{"collectives_backend", "paper-nccl-LLBuffer"},
-                {"ordered_backend", "paper-nccl-LLBuffer"},
+        return {{"collectives_backend", "low-latency-nccl-LLBuffer"},
+                {"ordered_backend", "low-latency-nccl-LLBuffer"},
                 {"unordered_backend", "NVSHMEM"},
                 {"paper", "https://arxiv.org/abs/2607.16100"},
                 {"nccl_commit", "5357eff325eddf978137de7140195a5568fa8a11"},
@@ -355,4 +355,4 @@ class Transport {
     }
 };
 #endif
-} // namespace tqr
+} // namespace qr_omega

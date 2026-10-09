@@ -13,7 +13,7 @@
 #include <array>
 #include <type_traits>
 #include <vector>
-namespace tqr {
+namespace qr_omega {
 template <class T> struct GfRange;
 template <> struct GfRange<float> {
     static constexpr float lo = 0x1p-100f, hi = 0x1p100f, xmax = 0x1p50f;
@@ -1384,4 +1384,4 @@ bool launch_fused_gx(const RegisterPanel<T> &p, T *Ts, int b, cudaStream_t st) {
         *p.carrier = Carrier{}.set(BlockLevel, 1, warps, 1);
     return true;
 }
-} // namespace tqr
+} // namespace qr_omega

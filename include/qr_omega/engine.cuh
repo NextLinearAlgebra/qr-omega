@@ -1,10 +1,11 @@
 #pragma once
 // The QR-Omega engine. It runs the elimination list of plan.hpp with the schedule of Algorithm 1 on
 // a grid of GPUs. The GPUs of the grid column that holds a panel factor their rows of it with one
-// GE each, and one TT elimination merges their triangles. The reflectors of every GE are shared
-// along its grid row and applied to the trailing columns in strips (update.cuh); the strips that
-// release the next panel go first and the far ones overlap its factorization. The update of a TT
-// merge sums the partial W of the grid rows within every grid column.
+// GE each, run as an HQR tree inside the GPU (domains.cuh), and one TT elimination merges their
+// triangles. The reflectors of every GE are shared along its grid row and applied to the trailing
+// columns in strips (update.cuh); the strips that release the next panel go first and the far ones
+// overlap its factorization. The update of a TT merge sums the partial W of the grid rows within
+// every grid column.
 #include "plan.hpp"
 #include "transport.cuh"
 #include "kernels.cuh"
@@ -13,7 +14,7 @@
 #include "householder_reconstruct.cuh"
 #include <functional>
 
-namespace tqr {
+namespace qr_omega {
 struct Options {
     int b = 64;                 // GE/TS/TT width, at most 64
     int strip = 4096;           // columns of one strip of the trailing update
@@ -1174,4 +1175,4 @@ template <class T> class Engine {
         return local_status();
     }
 };
-} // namespace tqr
+} // namespace qr_omega

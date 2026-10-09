@@ -30,11 +30,7 @@ def main():
     parser.add_argument("--modes", nargs="+", choices=tuple(KAPPAS), default=tuple(KAPPAS))
     args = parser.parse_args()
     binary = args.binary.resolve()
-    prefix = (
-        []
-        if args.gpus == 1
-        else ["mpirun", "--bind-to", "none", "--oversubscribe", "-np", str(args.gpus)]
-    )
+    prefix = [] if args.gpus == 1 else ["mpirun", "--bind-to", "none", "--oversubscribe", "-np", str(args.gpus)]
     if args.output:
         args.output.mkdir(parents=True, exist_ok=False)
     # The grids whose WY panels stay within the 2.5D bound, and the tree on the tallest grid.
@@ -49,9 +45,7 @@ def main():
             for rows, panel_format, aggregate in grids:
                 residuals = []
                 for kappa in KAPPAS[mode]:
-                    output = (args.output or Path(temp)) / (
-                        f"{mode}-r{rows}-{panel_format}-k{kappa:g}.json"
-                    )
+                    output = (args.output or Path(temp)) / (f"{mode}-r{rows}-{panel_format}-k{kappa:g}.json")
                     subprocess.run(
                         [
                             *prefix,

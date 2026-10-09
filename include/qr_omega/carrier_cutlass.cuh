@@ -16,7 +16,7 @@
 #include "kernels.cuh"
 #include <cooperative_groups.h>
 #include <type_traits>
-namespace tqr {
+namespace qr_omega {
 template <class M> struct CgToGroup;
 template <class S, class IA, class SIA, cutlass::arch::CacheOperation::Kind CA, class IB, class SIB,
           cutlass::arch::CacheOperation::Kind CBk, class EC, class LC, class P, int St,
@@ -594,4 +594,4 @@ Carrier launch_carrier_z(const T *t, int ldt, const T *w, int ldw, T *z, int ldz
                          : go(CRM{}, CRM{}, w, ldw, t, ldt, q, h);
     });
 }
-} // namespace tqr
+} // namespace qr_omega

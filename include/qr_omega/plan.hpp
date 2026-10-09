@@ -6,7 +6,7 @@
 // each GE travel along its grid row to the GPUs that hold the trailing columns of those rows.
 #include "kernels.cuh"
 
-namespace tqr {
+namespace qr_omega {
 inline constexpr int max_gpus = 8;
 
 // The GPUs of the node as a pr x pc grid, row-major: GPU `rank` sits in grid row rank / pc and
@@ -137,4 +137,4 @@ struct Plan {
         return -1;
     }
 };
-} // namespace tqr
+} // namespace qr_omega

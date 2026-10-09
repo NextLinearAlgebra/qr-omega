@@ -67,7 +67,7 @@ designated memory level. These are implementations of the same carried products.
 
 Separate CUDA streams schedule different strips and overlap the critical panel
 with far updates. They do not mean that each vendor contraction peer is submitted
-on its own stream. Ordered communication and collectives use the paper NCCL;
+on its own stream. Ordered communication and collectives use the low-latency NCCL;
 independent local-triangle publications into disjoint merge-owner slots use NVSHMEM. Each
 publication signals that its payload is ready, and reuse credits protect the staging buffer.
 The merged V/T packets and reconstruction factors return through ordered NCCL exchanges.

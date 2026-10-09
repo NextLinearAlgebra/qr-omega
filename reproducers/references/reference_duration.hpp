@@ -1,7 +1,7 @@
 #pragma once
 #include "common.hpp"
 
-namespace tqr {
+namespace qr_omega {
 // Observe a completed, globally synchronized operation. Never interrupt a
 // native library kernel. Stop further repetitions and still validate factors.
 class ReferenceDurationLimit {
@@ -10,7 +10,7 @@ class ReferenceDurationLimit {
 
   public:
     ReferenceDurationLimit() {
-        if (const char *value = std::getenv("TQR_REFERENCE_MAX_FACTOR_SECONDS")) {
+        if (const char *value = std::getenv("QR_OMEGA_REFERENCE_MAX_FACTOR_SECONDS")) {
             size_t used = 0;
             seconds_ = std::stod(value, &used);
             if (used != std::string(value).size() || !std::isfinite(seconds_) || seconds_ < 0)
@@ -34,4 +34,4 @@ class ReferenceDurationLimit {
              "stop subsequent repetitions after an over-limit completed operation; preserve and validate completed output"}};
     }
 };
-} // namespace tqr
+} // namespace qr_omega

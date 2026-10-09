@@ -15,8 +15,9 @@ json validate_mp_gathered(int m, int n, int block, int pr, int pc, int rank, int
     Buffer<T> gathered, staging;
     int admission = 1;
     std::string failure;
-    const bool force_stream = std::getenv("TQR_MP_VALIDATION_STREAM") &&
-                              std::string(std::getenv("TQR_MP_VALIDATION_STREAM")) == "1";
+    const bool force_stream =
+        std::getenv("QR_OMEGA_CUSOLVERMP_VALIDATION_STREAM") &&
+        std::string(std::getenv("QR_OMEGA_CUSOLVERMP_VALIDATION_STREAM")) == "1";
     if (rank == 0) {
         size_t free = 0, total = 0;
         CU(cudaMemGetInfo(&free, &total));

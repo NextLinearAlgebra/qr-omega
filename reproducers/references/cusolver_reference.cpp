@@ -2,10 +2,10 @@
 #include "common.hpp"
 #include "reference_gpu.hpp"
 #include <cusolverDn.h>
-#ifdef TQR_REFERENCE_VALIDATE
+#ifdef QR_OMEGA_REFERENCE_VALIDATE
 #include "reference_validation.hpp"
 #endif
-using namespace tqr;
+using namespace qr_omega;
 void solver_check_ref(cusolverStatus_t s) {
     if (s != CUSOLVER_STATUS_SUCCESS)
         throw std::runtime_error("cusolver_status_" + std::to_string(s));
@@ -21,7 +21,7 @@ template <class T> int bench(int m, int n, int reps) {
     solver_check_ref(cusolverDnCreate(&handle));
     solver_check_ref(cusolverDnCreateParams(&params));
     solver_check_ref(cusolverDnSetStream(handle, stream));
-    const char *mm = std::getenv("TQR_CUSOLVER_MATH");
+    const char *mm = std::getenv("QR_OMEGA_CUSOLVER_MATH");
     const bool emu = sizeof(T) == 4 && mm && std::string(mm) == "bf16x9";
     solver_check_ref(cusolverDnSetMathMode(handle, emu ? CUSOLVER_FP32_EMULATED_BF16X9_MATH
                                                        : CUSOLVER_DEFAULT_MATH));
@@ -66,7 +66,7 @@ template <class T> int bench(int m, int n, int reps) {
     std::sort(sorted.begin(), sorted.end());
     json validation = "info checked; independent full numerical validation separately required";
     bool numerical_pass = true;
-#ifdef TQR_REFERENCE_VALIDATE
+#ifdef QR_OMEGA_REFERENCE_VALIDATE
     if (status == 0) {
         try {
             work = Buffer<unsigned char>();
@@ -108,7 +108,7 @@ template <class T> int bench(int m, int n, int reps) {
                 {"initial_free_bytes", initial_free},
                 {"boundary",
                  "ready column-major device input through stream completion; R and conventional Householder Q handle"},
-                {"math", emu ? "FP32_EMULATED_BF16X9_MATH (TQR_CUSOLVER_MATH=bf16x9)"
+                {"math", emu ? "FP32_EMULATED_BF16X9_MATH (QR_OMEGA_CUSOLVER_MATH=bf16x9)"
                              : "selected precision DEFAULT_MATH; TF32 override0"},
                 {"validation", validation}}
                .dump()

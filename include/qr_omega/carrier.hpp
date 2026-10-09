@@ -11,7 +11,7 @@
 #include <tuple>
 #include <vector>
 
-namespace tqr {
+namespace qr_omega {
 enum Level { NodeLevel, GpuLevel, ClusterLevel, BlockLevel, Levels };
 inline const char *level_name(int l) {
     static const char *names[Levels] = {"node", "gpu", "cluster", "block"};
@@ -126,4 +126,4 @@ inline std::string describe(const Carrier &c) {
     }
     return s;
 }
-} // namespace tqr
+} // namespace qr_omega

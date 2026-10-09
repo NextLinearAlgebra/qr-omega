@@ -1,6 +1,6 @@
 # Code map
 
-`benchmarks/qr_omega.cu` builds as `qr_omega_single` and, with MPI, paper NCCL and NVSHMEM,
+`benchmarks/qr_omega.cu` builds as `qr_omega_single` and, with MPI, low-latency NCCL and NVSHMEM,
 `qr_omega_multi`. Multi-GPU execution uses one MPI rank per GPU.
 
 ## Factorization path
@@ -31,7 +31,7 @@
    adapter in `tree_math.cuh`. Segmented carriers support all modes
    and GPU-level contraction groups. Each actual launch records its `(p_i, p_j, c)` decomposition;
    `carrier.hpp` checks `c^2 <= p_i p_j` at every machine level.
-6. `paper_collectives.cuh` uses the low-latency NCCL paper's `ncclLLBuffer` protocol for row
+6. `low_latency_collectives.cuh` uses the low-latency NCCL paper's `ncclLLBuffer` protocol for row
    broadcasts, column sum/max/allgather and ordered pair exchanges. NCCL windows contain protocol
    buffers and reuse credits. `transport.cuh` uses NVSHMEM with per-peer generations to publish
    independently produced local triangles into disjoint slots on the merge owner. The merged
@@ -44,6 +44,7 @@
 | --- | --- |
 | `--mode` | `fp64`, `fp32`, `tf32`, or `3xtf32` |
 | `--m`, `--n` | Matrix dimensions, m >= n >= 1 |
+| `--kappa` | Conditioned input of this condition number (square, power-of-two order) |
 | `--b` | Panel width, at most 64 |
 | `--grid-rows` | Rows of the GPU grid; must divide the GPU count |
 | `--domain-tiles` | Tiles per domain: one GE followed by TS eliminations |
@@ -53,21 +54,26 @@
 | `--tree-update` | Input staging: `streaming` or `resident` in shared memory, in all four modes |
 | `--panel-format` | Retained `tree` factors or stable reconstructed `wy` factors |
 | `--strip`, `--depth` | Columns per update strip and strips in flight |
-| `--lookahead` | Overlap the next panel with the far update |
+| `--lookahead`, `--no-lookahead` | Overlap the next panel with the far update, or not |
 | `--aggregate` | 1 through 16 reconstructed panels per far update; values above 1 require WY and one GPU grid row |
 | `--wc`, `--zc` | Requested W/Z replication for non-fused products |
 | `--d-tiles` | 3×TF32 output tiles per thread block of the far D |
+| `--tail-from` | One GPU: the column from which a trailing block is factored in the tree format |
+| `--tail-<option>` | The schedule of that trailing block (for instance `--tail-strip`, `--tail-no-lookahead`) |
 | `--reps`, `--output` | Timed repetitions after one warmup and JSON output path |
+| `--no-check` | Time the schedule without the numerical checks |
 | `--profile-factor` | CUDA profiler range around the first timed factorization |
 
 ## Measurement and validation
 
-The schedules are tuned by hand and kept in `reproducers/presets.json`, one entry per matrix order,
-arithmetic and GPU count, with the driver options and the measured time and errors of the cell.
-`reproducers/runner.py` runs any of them again and checks the result against the recorded
-measurement.
+The schedules are tuned by hand and kept in `reproducers/presets.json`, one entry per measured
+shape, arithmetic and GPU count, with the driver options and the measured time and errors of the
+cell. `reproducers/runner.py` runs any of them again and checks the result against the recorded
+measurement; `plots/reproduce.py` draws the figures of the paper from the recorded measurements.
 
-Host contracts run with `python3 -m unittest discover -s tests -v`. Optional GPU CTest cases cover
-GE/TS/TT panels, scaled and rank-deficient inputs, partial panels, updates and Q replay. Run
+`ctest --preset host` runs the host tests of `tests/test_*.py`: the recorded data agree with each
+other, the runner selects, runs and judges cells as documented, and the figures and quoted numbers
+regenerate from the data. `ctest --preset gpu` covers GE/TS/TT panels, scaled and rank-deficient
+inputs, partial panels, updates, reconstruction, tails and Q replay on one GPU. Run
 `tests/hierarchy_gpu.py --gpus P` and `qr_omega_transport_tests` explicitly inside a multi-GPU
 allocation to validate the distributed hierarchy and both communication backends.

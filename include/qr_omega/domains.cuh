@@ -1,5 +1,5 @@
 #pragma once
-// Hierarchical QR inside one GPU: Algorithm 1 at the GPU level. The rows of a panel are split into
+// Hierarchical QR inside one GPU, the panel tree of Algorithm 2. The rows of a panel are split into
 // domains; a GE reduces the first tile, a flat TS chain absorbs the remaining dense tiles, and TT
 // eliminations merge fan_in domain triangles at a time up a tree to R. Every elimination is a block
 // of Householder reflectors with its own V and T, stored in place as PLASMA stores them: the V of a
@@ -16,7 +16,7 @@
 #include "panel_register.cuh"
 #include <climits>
 
-namespace tqr {
+namespace qr_omega {
 // A node holds at most `rows` = 32 items rows of a panel of at most `width` columns; its warps own
 // `vec` columns each. A TT elimination merges at most `max_children` triangles.
 struct DomainConfig {
@@ -300,4 +300,4 @@ inline double tree_flops(const DomainTree &t) {
             f += ge_flops(t.children(l, n) * t.h, t.h);
     return f;
 }
-} // namespace tqr
+} // namespace qr_omega

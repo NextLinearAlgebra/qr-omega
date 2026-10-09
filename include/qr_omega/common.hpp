@@ -18,14 +18,14 @@
 #include <type_traits>
 #include <vector>
 
-namespace tqr {
+namespace qr_omega {
 using json = nlohmann::json;
 
 inline void cuda_check(cudaError_t e, const char *where) {
     if (e != cudaSuccess)
         throw std::runtime_error(std::string(where) + ": " + cudaGetErrorString(e));
 }
-#define CU(x) ::tqr::cuda_check((x), #x)
+#define CU(x) ::qr_omega::cuda_check((x), #x)
 
 inline double seconds() {
     return std::chrono::duration<double>(std::chrono::steady_clock::now().time_since_epoch())
@@ -241,4 +241,4 @@ template <class T> struct Matrix {
         : m(m_), n(n_), rows(local_rows), cols(local_cols), ld(std::max(1, local_rows)),
           a(checked_mul(size_t(ld), size_t(std::max(0, local_cols)))) {}
 };
-} // namespace tqr
+} // namespace qr_omega

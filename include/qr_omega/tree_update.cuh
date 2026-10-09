@@ -12,7 +12,7 @@
 #include "domains.cuh"
 #include "tree_math.cuh"
 
-namespace tqr {
+namespace qr_omega {
 // The rows a step of a tree updates, as chunks of up to 64 rows: segment s of a domain step is the
 // first tile at s domain in X (the GE reflectors packed at s tile in V). A TS step joins the
 // domain head and its next dense tile. Segment s of a TT step is node s, whose chunk k is
@@ -843,4 +843,4 @@ Carrier factor_domains(T *a, int lda, const DomainTree &t, T *vp, int ldp, T *vs
     CU(cudaGetLastError());
     return Carrier{}.set(GpuLevel, t.count[0], 1, 1).set(BlockLevel, 1, warps, 1);
 }
-} // namespace tqr
+} // namespace qr_omega

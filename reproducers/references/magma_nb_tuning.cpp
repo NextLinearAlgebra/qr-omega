@@ -13,7 +13,7 @@ std::atomic<unsigned long long> calls[2]{};
 using Getter = magma_int_t (*)(magma_int_t, magma_int_t);
 magma_int_t get_nb(int which, const char *symbol, magma_int_t m, magma_int_t n) {
     ++calls[which];
-    if (const char *value = std::getenv("TQR_MAGMA_QR_NB")) {
+    if (const char *value = std::getenv("QR_OMEGA_MAGMA_NB")) {
         size_t used = 0;
         long long nb = std::stoll(value, &used);
         if (used != std::string(value).size() || nb < 1 || nb > 2048)
@@ -33,6 +33,6 @@ extern "C" magma_int_t magma_get_sgeqrf_nb(magma_int_t m, magma_int_t n) {
 extern "C" magma_int_t magma_get_dgeqrf_nb(magma_int_t m, magma_int_t n) {
     return get_nb(1, "magma_get_dgeqrf_nb", m, n);
 }
-extern "C" unsigned long long tqr_magma_nb_calls(int which) {
+extern "C" unsigned long long qr_omega_magma_nb_calls(int which) {
     return calls[which].load();
 }

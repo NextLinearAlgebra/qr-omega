@@ -1,0 +1,75 @@
+{
+  "version": 6,
+  "cmakeMinimumRequired": {"major": 3, "minor": 25, "patch": 0},
+  "configurePresets": [
+    {
+      "name": "one-gpu",
+      "displayName": "One GPU: the driver and the GPU tests",
+      "binaryDir": "${sourceDir}/build",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "QR_OMEGA_BUILD_GPU_TESTS": "ON",
+        "QR_OMEGA_BUILD_MULTI_GPU": "OFF",
+        "QR_OMEGA_BUILD_REFERENCES": "OFF"
+      }
+    },
+    {
+      "name": "node",
+      "inherits": "one-gpu",
+      "displayName": "The GPUs of a node: also the MPI driver and the transport benchmark",
+      "description": "Needs NCCL_ROOT (the low-latency NCCL), NVSHMEM_ROOT and an MPI compiler wrapper on PATH.",
+      "cacheVariables": {
+        "QR_OMEGA_BUILD_MULTI_GPU": "ON",
+        "NCCL_ROOT": "$env{NCCL_ROOT}",
+        "NVSHMEM_ROOT": "$env{NVSHMEM_ROOT}"
+      }
+    },
+    {
+      "name": "paper",
+      "inherits": "node",
+      "displayName": "Every measurement of the paper: also the reference adapters",
+      "description": "Also needs MAGMA_ROOT, MKLROOT, SLATE_ROOT, CUSOLVERMP_ROOT and REFERENCE_NCCL_ROOT (stock NCCL).",
+      "cacheVariables": {
+        "QR_OMEGA_BUILD_REFERENCES": "ON",
+        "MAGMA_ROOT": "$env{MAGMA_ROOT}",
+        "MKL_ROOT": "$env{MKLROOT}",
+        "SLATE_ROOT": "$env{SLATE_ROOT}",
+        "CUSOLVERMP_ROOT": "$env{CUSOLVERMP_ROOT}",
+        "REFERENCE_NCCL_ROOT": "$env{REFERENCE_NCCL_ROOT}"
+      }
+    }
+  ],
+  "buildPresets": [
+    {"name": "one-gpu", "configurePreset": "one-gpu", "jobs": 16},
+    {"name": "node", "configurePreset": "node", "jobs": 16},
+    {"name": "paper", "configurePreset": "paper", "jobs": 16}
+  ],
+  "testPresets": [
+    {
+      "name": "host",
+      "displayName": "Host tests: data, figures and runner, no GPU",
+      "configurePreset": "one-gpu",
+      "filter": {"include": {"label": "cpu"}},
+      "output": {"outputOnFailure": true}
+    },
+    {
+      "name": "gpu",
+      "displayName": "GPU correctness tests on one GPU",
+      "configurePreset": "one-gpu",
+      "filter": {"include": {"label": "gpu"}},
+      "output": {"outputOnFailure": true}
+    }
+  ],
+  "workflowPresets": [
+    {
+      "name": "one-gpu",
+      "displayName": "Configure, build and run every test on one GPU",
+      "steps": [
+        {"type": "configure", "name": "one-gpu"},
+        {"type": "build", "name": "one-gpu"},
+        {"type": "test", "name": "host"},
+        {"type": "test", "name": "gpu"}
+      ]
+    }
+  ]
+}

@@ -23,7 +23,7 @@
 #include "cutlass/gemm/kernel/gemm_universal.hpp"
 #include "cutlass/arch/barrier.h"
 #include "cutlass/gemm/collective/sm90_mma_tma_gmma_rs_warpspecialized.hpp"
-namespace tqr {
+namespace qr_omega {
 namespace gmma {
 using namespace cute;
 // Round to nearest (ties away) at the TF32 mantissa, as cvt.rna.tf32.f32 does for finite values.
@@ -199,7 +199,7 @@ template <int BM, int BN, class LC> struct KSplitGemm {
 inline constexpr int x3rs_stages = 3;
 // k-tiles between promotions of its tensor-core accumulator to FP32. Across GPUs every other k-tile:
 // with four the errors grow to about 1.4 times the published ones.
-#ifdef TQR_MULTI
+#ifdef QR_OMEGA_MULTI_GPU
 inline constexpr int x3rs_promote = 2;
 #else
 inline constexpr int x3rs_promote = 4;
@@ -801,4 +801,4 @@ inline void launch_gmma_g(int cg, const float *v, int ldv, const float *x, int l
     }
     gmma_detail::combine_slices(part, sp, cg, g, ldg, q, h, st);
 }
-} // namespace tqr
+} // namespace qr_omega

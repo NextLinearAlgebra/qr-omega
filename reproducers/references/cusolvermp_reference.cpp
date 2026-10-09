@@ -8,7 +8,7 @@
 #include <nccl.h>
 #include <mpi.h>
 #include <dlfcn.h>
-using namespace tqr;
+using namespace qr_omega;
 void mp_check_impl(cusolverStatus_t s, const char *expression) {
     if (s != CUSOLVER_STATUS_SUCCESS)
         throw std::runtime_error("cusolverMp_status_" + std::to_string(s) + " at " + expression);
@@ -24,7 +24,7 @@ template <class T>
 int bench(int m, int n, int block, int reps, int p, int rank, int device, ncclComm_t comm) {
     constexpr cudaDataType type = sizeof(T) == 4 ? CUDA_R_32F : CUDA_R_64F;
     int pr = p;
-    if (const char *requested = std::getenv("TQR_MP_GRID_ROWS"))
+    if (const char *requested = std::getenv("QR_OMEGA_CUSOLVERMP_GRID_ROWS"))
         pr = std::stoi(requested);
     if (pr < 1 || p % pr)
         throw std::runtime_error("process_grid_rows_must_divide_P");
@@ -75,7 +75,7 @@ int bench(int m, int n, int block, int reps, int p, int rank, int device, ncclCo
         if (duration.observe(maximum) || error)
             break;
     }
-    bool validate = std::getenv("TQR_REFERENCE_GEQRF_ONLY") == nullptr;
+    bool validate = std::getenv("QR_OMEGA_REFERENCE_TIMING_ONLY") == nullptr;
     json validation = {
         {"performed", false}, {"pass", nullptr}, {"scope", "no independent validation requested"}};
     if (validate && !error && m && n)

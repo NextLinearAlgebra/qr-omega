@@ -5,7 +5,7 @@
 // (1, 8, 2). Groups of blocks of the GPU split K again into 16-aligned balanced ranges, within the
 // 2.5D bound of the output tiles, and their partials are summed in HBM in a fixed order.
 #include "carrier_cutlass.cuh"
-namespace tqr {
+namespace qr_omega {
 namespace simt {
 constexpr int BM = 128, BN = 128, BK = 16, WK = 8, SK = 2, SLICE = 256, THREADS = SLICE * SK;
 constexpr int LDS = BM + 4; // SMEM row stride of a k-row (floats): 16-byte aligned rows
@@ -239,4 +239,4 @@ inline Carrier launch_simt_w(const float *v, int ldv, const float *x, int ldx, f
     simt::launch(a, st);
     return simt::carrier(h, q, std::max(1, cg));
 }
-} // namespace tqr
+} // namespace qr_omega

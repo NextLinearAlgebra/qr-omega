@@ -9,11 +9,8 @@
 #include <omp.h>
 
 static_assert(sizeof(omp_nest_lock_t) == 16, "Use the supplied GCC-ABI SLATE build");
-using namespace tqr;
+using namespace qr_omega;
 static const char *reference_phase = "initialization";
-#ifdef TQR_SLATE_WORKSPACE_ENVELOPE
-extern "C" void tqr_slate_workspace_domain(int64_t, int64_t, int64_t);
-#endif
 
 int local_count(int n, int nb, int coord, int parts) {
     int count = 0;
@@ -87,15 +84,12 @@ void r_block(slate::Matrix<T> &a, T *x, int ld, int nr, int local_width, int fir
 
 template <class T> int bench(int m, int n, int nb, int reps, int p, int rank) {
     int pr = p == 4 ? 2 : p;
-    if (const char *value = std::getenv("TQR_SLATE_GRID_ROWS"))
+    if (const char *value = std::getenv("QR_OMEGA_SLATE_GRID_ROWS"))
         pr = std::stoi(value);
     if (pr < 1 || pr > p || p % pr)
         throw std::runtime_error("invalid_SLATE_process_grid");
     int pc = p / pr, rr = rank % pr, rc = rank / pr;
     int nr = local_count(m, nb, rr, pr), ld = std::max(1, nr);
-#ifdef TQR_SLATE_WORKSPACE_ENVELOPE
-    tqr_slate_workspace_domain(nr, nb, n);
-#endif
     size_t initial_free, total, input_free, factor_free;
     CU(cudaMemGetInfo(&initial_free, &total));
     double setup_start = seconds();
@@ -116,9 +110,9 @@ template <class T> int bench(int m, int n, int nb, int reps, int p, int rank) {
             tuning[name] = v;
         }
     };
-    option("TQR_SLATE_LOOKAHEAD", slate::Option::Lookahead, 0);
-    option("TQR_SLATE_PANEL_THREADS", slate::Option::MaxPanelThreads);
-    option("TQR_SLATE_INNER_BLOCK", slate::Option::InnerBlocking);
+    option("QR_OMEGA_SLATE_LOOKAHEAD", slate::Option::Lookahead, 0);
+    option("QR_OMEGA_SLATE_PANEL_THREADS", slate::Option::MaxPanelThreads);
+    option("QR_OMEGA_SLATE_INNER_BLOCK", slate::Option::InnerBlocking);
     std::vector<double> times;
     ReferenceDurationLimit duration;
     double first_s = 0;
@@ -146,9 +140,9 @@ template <class T> int bench(int m, int n, int nb, int reps, int p, int rank) {
             break;
     }
     CU(cudaMemGetInfo(&factor_free, &total));
-    // Paper timing campaign: TQR_REFERENCE_GEQRF_ONLY skips the streamed validation; the winning
+    // QR_OMEGA_REFERENCE_TIMING_ONLY skips the streamed validation, for timing runs whose
     // configuration is validated in a separate full run.
-    if (std::getenv("TQR_REFERENCE_GEQRF_ONLY")) {
+    if (std::getenv("QR_OMEGA_REFERENCE_TIMING_ONLY")) {
         auto sorted_t = times;
         std::sort(sorted_t.begin(), sorted_t.end());
         if (rank == 0)
@@ -179,7 +173,7 @@ template <class T> int bench(int m, int n, int nb, int reps, int p, int rank) {
                         {"validation",
                          {{"performed", false},
                           {"pass", nullptr},
-                          {"scope", "timing-only run (TQR_REFERENCE_GEQRF_ONLY)"}}}}
+                          {"scope", "timing-only run (QR_OMEGA_REFERENCE_TIMING_ONLY)"}}}}
                        .dump()
                 << '\n';
         return duration.exceeded() ? 4 : 0;
@@ -187,7 +181,7 @@ template <class T> int bench(int m, int n, int nb, int reps, int p, int rank) {
     reference_phase = "streamed_validation";
     double validation_start = seconds(), worst = 0, inverse = 0;
     int qmax = nb * pc;
-    if (const char *value = std::getenv("TQR_REFERENCE_VALIDATION_WIDTH")) {
+    if (const char *value = std::getenv("QR_OMEGA_REFERENCE_VALIDATION_WIDTH")) {
         int wanted = std::stoi(value);
         if (wanted < 1 || wanted > 8192)
             throw std::runtime_error("reference_validation_width_1_to_8192");
@@ -281,11 +275,7 @@ template <class T> int bench(int m, int n, int nb, int reps, int p, int rank) {
     return !pass ? 1 : duration.exceeded() ? 4 : 0;
 }
 
-#ifdef TQR_REFERENCE_MODULE
-extern "C" int tqr_slate_reference_entry(int argc, char **argv) {
-#else
 int main(int argc, char **argv) {
-#endif
     int provided, rank, p;
     MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided);
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);

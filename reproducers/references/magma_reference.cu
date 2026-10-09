@@ -3,13 +3,13 @@
 #include <magma_v2.h>
 #include <cstdlib>
 #include "reference_duration.hpp"
-#ifdef TQR_MAGMA_TUNING_HOOK
-extern "C" unsigned long long tqr_magma_nb_calls(int);
+#ifdef QR_OMEGA_MAGMA_TUNING_HOOK
+extern "C" unsigned long long qr_omega_magma_nb_calls(int);
 #endif
-#ifdef TQR_REFERENCE_VALIDATE
+#ifdef QR_OMEGA_REFERENCE_VALIDATE
 #include "reference_validation.hpp"
 #endif
-using namespace tqr;
+using namespace qr_omega;
 template <class T>
 __global__ void magma_input(T *a, int m, int local_n, int ld, int rank, int p, int block) {
     for (size_t index = blockIdx.x * blockDim.x + threadIdx.x; index < size_t(m) * local_n;
@@ -19,7 +19,7 @@ __global__ void magma_input(T *a, int m, int local_n, int ld, int rank, int p, i
             T(int(mix64(uint64_t(r) + uint64_t(g) * std::max(m, 1) + 73) % 2001) - 1000) / T(1000);
     }
 }
-#ifdef TQR_REFERENCE_VALIDATE
+#ifdef QR_OMEGA_REFERENCE_VALIDATE
 template <class T>
 json validate_magma_factors(int m, int n, int p, int block, int ld, const std::vector<T *> &a,
                             const std::vector<T> &tau) {
@@ -36,7 +36,7 @@ json validate_magma_factors(int m, int n, int p, int block, int ld, const std::v
         device_tau.upload(tau, stream);
         stream.sync();
         Buffer<T> gathered;
-        const bool full_gather = std::getenv("TQR_MAGMA_VALIDATION_GATHER") != nullptr;
+        const bool full_gather = std::getenv("QR_OMEGA_MAGMA_VALIDATION_GATHER") != nullptr;
         if (full_gather) {
             size_t bytes = checked_mul(checked_mul(size_t(ld), size_t(n)), sizeof(T));
             if (bytes > size_t(1024) * 1024 * 1024)
@@ -140,7 +140,7 @@ template <class T> int bench(int m, int n, int p, int reps) {
     magma_int_t info = 0;
     double first = 0;
     ReferenceDurationLimit duration;
-#ifdef TQR_MAGMA_TUNING_HOOK
+#ifdef QR_OMEGA_MAGMA_TUNING_HOOK
     std::vector<unsigned long long> tuning_calls;
 #endif
     for (int rep = 0; rep <= reps; ++rep) {
@@ -152,8 +152,8 @@ template <class T> int bench(int m, int n, int p, int reps) {
         }
         CU(cudaSetDevice(0));
         double start = seconds();
-#ifdef TQR_MAGMA_TUNING_HOOK
-        unsigned long long calls_before = tqr_magma_nb_calls(sizeof(T) == 4 ? 0 : 1);
+#ifdef QR_OMEGA_MAGMA_TUNING_HOOK
+        unsigned long long calls_before = qr_omega_magma_nb_calls(sizeof(T) == 4 ? 0 : 1);
 #endif
         if constexpr (sizeof(T) == 4) {
             if (p == 1)
@@ -175,8 +175,8 @@ template <class T> int bench(int m, int n, int p, int reps) {
             times.push_back(elapsed);
         else
             first = elapsed;
-#ifdef TQR_MAGMA_TUNING_HOOK
-        auto observed = tqr_magma_nb_calls(sizeof(T) == 4 ? 0 : 1) - calls_before;
+#ifdef QR_OMEGA_MAGMA_TUNING_HOOK
+        auto observed = qr_omega_magma_nb_calls(sizeof(T) == 4 ? 0 : 1) - calls_before;
         tuning_calls.push_back(observed);
         if (!observed)
             throw std::runtime_error("MAGMA_native_call_did_not_observe_tuning_function");
@@ -186,12 +186,12 @@ template <class T> int bench(int m, int n, int p, int reps) {
     }
     json validation = "info checked; independent numerical reference validation still required";
     bool numerical_pass = true;
-#ifdef TQR_REFERENCE_VALIDATE
-    // Timing campaign: TQR_REFERENCE_GEQRF_ONLY skips the validation, as in the other adapters.
-    if (std::getenv("TQR_REFERENCE_GEQRF_ONLY"))
+#ifdef QR_OMEGA_REFERENCE_VALIDATE
+    // QR_OMEGA_REFERENCE_TIMING_ONLY skips the validation, as in the other adapters.
+    if (std::getenv("QR_OMEGA_REFERENCE_TIMING_ONLY"))
         validation = {{"performed", false},
                       {"pass", nullptr},
-                      {"scope", "timing-only run (TQR_REFERENCE_GEQRF_ONLY)"}};
+                      {"scope", "timing-only run (QR_OMEGA_REFERENCE_TIMING_ONLY)"}};
     else if (info == 0) {
         try {
             validation = validate_magma_factors(m, n, p, block, ld, a, tau);
@@ -227,12 +227,12 @@ template <class T> int bench(int m, int n, int p, int reps) {
         {"math", "FP32/FP64; NVIDIA_TF32_OVERRIDE=0; CPU panel arithmetic is reference-only"},
         {"host_threads", std::getenv("MKL_NUM_THREADS") ? std::getenv("MKL_NUM_THREADS") : "unset"},
         {"validation", validation}};
-#ifdef TQR_MAGMA_TUNING_HOOK
+#ifdef QR_OMEGA_MAGMA_TUNING_HOOK
     record["block_tuning"] = {
         {"mechanism",
          "isolated public get_geqrf_nb function override; native geqrf2_mgpu unchanged"},
         {"requested",
-         std::getenv("TQR_MAGMA_QR_NB") ? std::getenv("TQR_MAGMA_QR_NB") : "native default"},
+         std::getenv("QR_OMEGA_MAGMA_NB") ? std::getenv("QR_OMEGA_MAGMA_NB") : "native default"},
         {"effective", block},
         {"native_calls_per_factor", tuning_calls}};
 #endif

@@ -1,7 +1,7 @@
 // GPU helpers of the reference adapters: input generation and numerical checks.
 #include "kernels.cuh"
 #include "reference_gpu.hpp"
-using namespace tqr;
+using namespace qr_omega;
 template <class T>
 __global__ void cyclic_generate(T *a, int nr, int nc, int ld, int m, int nb, int pr, int pc, int rr,
                                 int rc, int first) {

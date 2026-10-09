@@ -5,7 +5,7 @@
 #include "panel_reference.hpp"
 #include <numeric>
 
-using namespace tqr;
+using namespace qr_omega;
 using namespace panel_reference;
 
 namespace {

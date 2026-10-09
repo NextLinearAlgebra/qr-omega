@@ -9,7 +9,7 @@
 #include "carrier.hpp"
 #include "kernels.cuh"
 
-namespace tqr {
+namespace qr_omega {
 inline constexpr int skinny_warps = 4;
 // Rows a group of the skinny carrier walks at least.
 inline constexpr int skinny_min_rows = 256;
@@ -124,4 +124,4 @@ Carrier launch_skinny_atb(const T *a, int lda, const T *b, int ldb, T *c, int ld
         .set(GpuLevel, ceildiv(m, tm), ceildiv(n, tn), groups)
         .set(BlockLevel, 1, skinny_warps, 1);
 }
-} // namespace tqr
+} // namespace qr_omega

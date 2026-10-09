@@ -1,13 +1,5 @@
 /build*/
 /.venv/
 /results/
-/deps/
 __pycache__/
 *.pyc
-*.aux
-*.log
-*.out
-*.fls
-*.fdb_latexmk
-*.synctex.gz
-/machine/profiles/cache/
