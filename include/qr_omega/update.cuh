@@ -8,6 +8,7 @@
 #include "carrier_skinny.cuh"
 #include "carrier_vendor.cuh"
 #include "carrier_wgmma.cuh"
+#include "carrier_wgmma_fp16.cuh"
 #include "domains.cuh"
 #include "tree_update.cuh"
 #include <functional>
@@ -75,6 +76,7 @@ template <class T> class Updater {
     int tree_segments = 0, tree_slices = 0, tree_strip = 0;
     std::vector<Lane<T>> lanes_;
     VendorProduct<T> vendor;
+    int *status_ = nullptr; // DeviceStatus word the 3xFP16 range checks report to
 
     // wgmma products with fewer output tiles x slices than this run on the CUTLASS carriers,
     // whose smaller tiles admit more groups within the bound.
@@ -88,7 +90,24 @@ template <class T> class Updater {
     }
     size_t vr_words() const {
         const size_t packed = size_t(max_rows) * width();
-        return fp32_math() == Fp32Math::X3 ? 3 * packed + 3 * size_t(width()) * strip : packed;
+        return fp32_math() == Fp32Math::X3
+                   ? 3 * packed + 3 * size_t(width()) * strip + (fp32_x3h() ? x3h_scratch : 0)
+                   : packed;
+    }
+    // 3xFP16: two words at the end of the lane's packed buffer hold max |Z| and D's alpha.
+    static constexpr size_t x3h_scratch = 32;
+    unsigned *x3h_zmax(const Lane<T> &lane) const {
+        return reinterpret_cast<unsigned *>(lane.vr + vr_words() - x3h_scratch);
+    }
+    float *x3h_alpha(const Lane<T> &lane) const {
+        return reinterpret_cast<float *>(lane.vr + vr_words() - x3h_scratch) + 1;
+    }
+    // FP16 segments of D: VR at the start of the packed buffer, Z3 where the 3xTF32 one goes.
+    cutlass::half_t *x3h_vr(const Lane<T> &lane) const {
+        return reinterpret_cast<cutlass::half_t *>(lane.vr);
+    }
+    cutlass::half_t *x3h_z3(const Lane<T> &lane) const {
+        return reinterpret_cast<cutlass::half_t *>(lane.vr + 3 * size_t(max_rows) * width());
     }
     static bool vendor_admits(int m, int n) {
         return (std::is_same_v<T, double> || fp32_math() == Fp32Math::IEEE) &&
@@ -103,6 +122,12 @@ template <class T> class Updater {
             if (fp32_math() == Fp32Math::TF32)
                 return h <= width() &&
                        gmma_d_admits(lane.vr, width(), lane.z, ld, x, ldx, rows, h, q);
+            if (fp32_x3h()) {
+                const int hs = gmma_x3_seg(h);
+                return hs <= width() && q <= strip &&
+                       gmma_dh_admits(x3h_vr(lane), 3 * hs, x3h_z3(lane), 3 * hs, x, ldx, rows,
+                                      3 * hs, q, x3h_alpha(lane));
+            }
             if (fp32_math() == Fp32Math::X3) {
                 const int hs = gmma_x3_seg(h);
                 return hs <= width() && q <= strip &&
@@ -117,8 +142,12 @@ template <class T> class Updater {
         if (version && lane.packed == v && lane.packed_rows == rows && lane.packed_h == h &&
             lane.packed_version == version)
             return;
-        if constexpr (std::is_same_v<T, float>)
-            launch_pack_vr(v, ldv, rows, h, hs, lane.vr, ldvr, x3, lane.stream);
+        if constexpr (std::is_same_v<T, float>) {
+            if (x3 && fp32_x3h())
+                launch_pack_vr_h(v, ldv, rows, h, hs, x3h_vr(lane), ldvr, lane.stream, status_);
+            else
+                launch_pack_vr(v, ldv, rows, h, hs, lane.vr, ldvr, x3, lane.stream);
+        }
         lane.packed = v;
         lane.packed_rows = rows;
         lane.packed_h = h;
@@ -150,7 +179,19 @@ template <class T> class Updater {
                     return gmma_carrier(h, q, cg);
                 }
             }
-            if (fp32_math() == Fp32Math::X3) {
+            if (fp32_x3h()) {
+                const int cg = bounded_groups(tiles, std::max(1, c.w));
+                const float xs = x3h_x_scale(max_rows);
+                if (tiles * cg >= gmma_min_blocks &&
+                    gmma_w3h_admits(cg, v, ldv, x, ldx, w, ld, rows, h, q, lane.vr, xs)) {
+                    lane.packed_version = 0;
+                    launch_gmma_w3h(cg, v, ldv, x, ldx, w, ld, rows, h, q, st, lane.vr, xs,
+                                    tiles_per_block, status_);
+                    ++x3h_counts().w;
+                    return gmma_w3rs_carrier(h, q, cg);
+                }
+            }
+            if (fp32_math() == Fp32Math::X3 && !fp32_x3h()) {
                 const int cg = bounded_groups(tiles, std::max(1, c.w));
                 if (tiles * cg >= gmma_min_blocks &&
                     gmma_w3rs_admits(cg, v, ldv, x, ldx, w, ld, rows, h, q, lane.vr)) {
@@ -191,6 +232,9 @@ template <class T> class Updater {
     }
     Lane<T> &lane(int i) {
         return lanes_[i];
+    }
+    void set_status(int *status) {
+        status_ = status;
     }
     json workspace() const {
         const size_t w = w_.n * sizeof(T), z = z_.n * sizeof(T), packed = vr_.n * sizeof(T),
@@ -348,7 +392,15 @@ template <class T> class Updater {
         }
         if constexpr (std::is_same_v<T, float>) {
             const int tiles = lane.far ? d_tiles : 0;
-            if (fp32_math() == Fp32Math::X3) {
+            if (fp32_x3h()) {
+                const int hs = gmma_x3_seg(h);
+                pack_v(lane, v, ldv, rows, h, hs, 3 * hs, true, version);
+                pack_z3_fp16(lane.z, ld, h, hs, q, x3h_z3(lane), 3 * hs, x3h_zmax(lane),
+                             x3h_alpha(lane), st, status_);
+                launch_gmma_dh(x3h_vr(lane), 3 * hs, x3h_z3(lane), 3 * hs, x, ldx, rows, 3 * hs, q,
+                               x3h_alpha(lane), st, tiles);
+                ++x3h_counts().d;
+            } else if (fp32_math() == Fp32Math::X3) {
                 const int hs = gmma_x3_seg(h);
                 float *z3 = lane.vr + 3 * size_t(max_rows) * width();
                 pack_v(lane, v, ldv, rows, h, hs, 3 * hs, true, version);

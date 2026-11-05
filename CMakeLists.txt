@@ -122,6 +122,7 @@ if(QR_OMEGA_BUILD_GPU_TESTS)
   qr_omega_kernel_test(register_panel qr_omega_register_tests tests/register_panel.cu)
   qr_omega_kernel_test(tree_update qr_omega_tree_update_tests tests/tree_update.cu)
   qr_omega_kernel_test(scaled_norm qr_omega_norm_tests tests/norm_gpu.cu)
+  qr_omega_kernel_test(x3fp16_products qr_omega_x3fp16_tests tests/x3fp16_gpu.cu)
   qr_omega_driver_test(hierarchy_updates hierarchy_gpu.py 600)
   qr_omega_driver_test(hierarchy_resident hierarchy_gpu.py 180 --tree-update resident)
   qr_omega_driver_test(hierarchy_reconstructed hierarchy_gpu.py 600 --panel-format wy)
@@ -131,5 +132,8 @@ if(QR_OMEGA_BUILD_GPU_TESTS)
   qr_omega_driver_test(hierarchy_tall_reconstructed hierarchy_gpu.py 600
     --panel-format wy --aggregate 2 --tree-update resident --tall)
   qr_omega_driver_test(conditioning condition_gpu.py 900)
+  # 3xFP16 at an order whose updates reach its wgmma W and D.
+  qr_omega_driver_test(conditioning_3xfp16 condition_gpu.py 900 --modes 3xfp16 --n 4096
+                       --expect-fp16)
   qr_omega_driver_test(tree_tail tail_gpu.py 600)
 endif()

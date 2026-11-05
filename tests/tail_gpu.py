@@ -22,7 +22,7 @@ def main():
     args = parser.parse_args()
     failures = []
     with tempfile.TemporaryDirectory() as temp:
-        for mode in ("fp64", "fp32", "tf32", "3xtf32"):
+        for mode in ("fp64", "fp32", "tf32", "3xtf32", "3xfp16"):
             for n, b, aggregate, tail_from, tail in CASES:
                 output = Path(temp) / f"{mode}-{n}.json"
                 command = [

@@ -15,6 +15,7 @@ KAPPAS = {
     "fp32": (1e1, 1e3, 1e6, 1e9, 1e12),
     "tf32": (1e1, 1e3, 1e6, 1e9, 1e12),
     "3xtf32": (1e1, 1e3, 1e6, 1e9, 1e12),
+    "3xfp16": (1e1, 1e3, 1e6, 1e9, 1e12),
 }
 # Errors that grew with kappa (as u kappa for unstable or u kappa^2 for Gram-based panels) would
 # spread over orders of magnitude across these kappas.
@@ -27,6 +28,9 @@ def main():
     parser.add_argument("--gpus", type=int, choices=(1, 2, 3, 4, 8), default=1)
     parser.add_argument("--n", type=int, default=1024)
     parser.add_argument("--output", type=Path)
+    parser.add_argument(
+        "--expect-fp16", action="store_true", help="require the 3xFP16 W and D to have run"
+    )
     parser.add_argument("--modes", nargs="+", choices=tuple(KAPPAS), default=tuple(KAPPAS))
     args = parser.parse_args()
     binary = args.binary.resolve()
@@ -42,6 +46,8 @@ def main():
             grids.append((rows, "wy", 8))
     with tempfile.TemporaryDirectory() as temp:
         for mode in args.modes:
+            # The aggregated WY panels reach the wgmma W and D; the tree panels need not.
+            used = {"w": 0, "d": 0}
             for rows, panel_format, aggregate in grids:
                 residuals = []
                 for kappa in KAPPAS[mode]:
@@ -77,6 +83,8 @@ def main():
                     assert record["pass"] and record["status"] == 0, record
                     assert record["kappa"] == kappa, record
                     assert record["carriers"]["bounded"] == record["carriers"]["products"], record
+                    for k, count in record.get("x3fp16_products", {}).items():
+                        used[k] += count
                     residuals.append((kappa, record["residual"], record["orthogonality"]))
                 errors = [max(r, o) for _, r, o in residuals]
                 spread = max(errors) / min(errors)
@@ -89,6 +97,9 @@ def main():
                     flush=True,
                 )
                 assert spread <= SPREAD, (mode, rows, panel_format, residuals)
+            if args.expect_fp16 and mode == "3xfp16":
+                print(mode, "3xFP16 products", used, flush=True)
+                assert used["w"] > 0 and used["d"] > 0, used
 
 
 if __name__ == "__main__":

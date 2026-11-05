@@ -108,15 +108,17 @@ Arguments parse(int argc, char **argv) {
     const std::map<std::string, Fp32Math> math{{"fp64", Fp32Math::IEEE},
                                                {"fp32", Fp32Math::IEEE},
                                                {"tf32", Fp32Math::TF32},
-                                               {"3xtf32", Fp32Math::X3}};
+                                               {"3xtf32", Fp32Math::X3},
+                                               {"3xfp16", Fp32Math::X3}};
     if (!math.count(a.mode))
-        throw std::runtime_error("--mode is one of fp64, fp32, tf32, 3xtf32");
+        throw std::runtime_error("--mode is one of fp64, fp32, tf32, 3xtf32, 3xfp16");
     if (a.m < a.n || a.n < 1 || a.reps < 1)
         throw std::runtime_error("the matrix needs m >= n >= 1 and at least one repetition");
     if (a.kappa && (a.kappa < 1 || a.m != a.n || a.n & (a.n - 1)))
         throw std::runtime_error(
             "--kappa needs kappa >= 1 and a square matrix of power-of-two order");
     fp32_math() = math.at(a.mode);
+    x3_fp16() = a.mode == "3xfp16";
     return a;
 }
 
@@ -404,6 +406,8 @@ template <class T> int run(const Arguments &args, Context &ctx) {
         record["update_workspace"] = engine.update_workspace();
         record["median_s"] = median(timings.times);
         record["checked"] = args.check;
+        if (x3_fp16())
+            record["x3fp16_products"] = {{"w", x3h_counts().w}, {"d", x3h_counts().d}};
         if (args.check)
             record.update(check_record(engine, a, ctx, place, g, args));
     }

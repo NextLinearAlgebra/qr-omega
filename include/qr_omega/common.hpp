@@ -52,6 +52,23 @@ inline Fp32Math &fp32_math() {
     static Fp32Math math = Fp32Math::IEEE;
     return math;
 }
+// Under X3, whether the wgmma W and D split their operands into FP16 big + small parts (3xFP16,
+// FP32 accumulation) instead of TF32 ones. Every other product keeps its 3xTF32 path.
+inline bool &x3_fp16() {
+    static bool on = false;
+    return on;
+}
+inline bool fp32_x3h() {
+    return fp32_math() == Fp32Math::X3 && x3_fp16();
+}
+// Products the 3xFP16 kernels ran, so that tests can tell they were exercised.
+struct X3hCounts {
+    long long w = 0, d = 0;
+};
+inline X3hCounts &x3h_counts() {
+    static X3hCounts c;
+    return c;
+}
 template <class T> std::string precision() {
     return sizeof(T) == 4 ? "fp32" : "fp64";
 }

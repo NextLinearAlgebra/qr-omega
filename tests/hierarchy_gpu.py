@@ -15,8 +15,8 @@ def main():
     parser.add_argument(
         "--modes",
         nargs="+",
-        choices=("fp64", "fp32", "tf32", "3xtf32"),
-        default=("fp64", "fp32", "tf32", "3xtf32"),
+        choices=("fp64", "fp32", "tf32", "3xtf32", "3xfp16"),
+        default=("fp64", "fp32", "tf32", "3xtf32", "3xfp16"),
     )
     parser.add_argument("--tree-update", choices=("streaming", "resident"), default="streaming")
     parser.add_argument("--panel-format", choices=("tree", "wy"), default="tree")

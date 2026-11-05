@@ -5,7 +5,9 @@
 #include "common.hpp"
 namespace qr_omega {
 // What a factorization reports: success, a non-finite input, or a result FP32 cannot represent.
-enum DeviceStatus { OK = 0, NONFINITE_INPUT = 1, UNREPRESENTABLE_RESULT = 2 };
+// FP16_RANGE: a prescaled 3xFP16 operand left the FP16 range (a reflector entry beyond the
+// bound x3h_v_scale assumes).
+enum DeviceStatus { OK = 0, NONFINITE_INPUT = 1, UNREPRESENTABLE_RESULT = 2, FP16_RANGE = 3 };
 
 // Rows [row, row + rows) of one GPU below the diagonal of a panel, reduced by h reflectors whose T
 // factor is `tile`.

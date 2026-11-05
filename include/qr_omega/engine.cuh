@@ -890,6 +890,7 @@ template <class T> class Engine {
         update = std::make_unique<Updater<T>>(b, opt.aggregate, opt.strip, ldv, opt.c, opt.d_tiles,
                                               streams, opt.lookahead ? opt.depth : -1, tally,
                                               opt.resident_tree);
+        update->set_status(status.p);
         column_scale.alloc(n);
         tri.alloc(tiles * block);
         gram_partials.alloc(128 * block);
